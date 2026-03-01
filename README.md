@@ -6,10 +6,10 @@ Deskripsi : SIPILIH (Sistem Informasi Pemilihan Digital) merupakan platform berb
 
 | Nama | NIM | Peran |
 |------|-----|-------|
-| ...  | ... | Lead Backend |
-| ...  | ... | Lead Frontend |
-| ...  | ... | Lead DevOps |
-| ...  | ... | Lead QA & Docs |
+| Dzakwan Fatih Fadhilah  | 10231034 | Lead Backend |
+| Risky Nur Fatimah Bahar  | 10231084 | Lead Frontend |
+| Muhammad Dani  | 10231062 | Lead DevOps |
+| Ade Ayu Kholifah Putri | 10231004 | Lead QA & Docs |
 
 ## 🛠️ Tech Stack
 
