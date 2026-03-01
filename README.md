@@ -1,7 +1,6 @@
-# ☁️ Cloud App - [Nama Proyek Tim Anda]
+# ☁️ Cloud App - SIPILIH (Sistem Informasi Pemilihan Digital)
 
-Deskripsi singkat aplikasi (1-2 paragraf): apa yang dilakukan, 
-untuk siapa, masalah apa yang diselesaikan.
+Deskripsi : SIPILIH (Sistem Informasi Pemilihan Digital) merupakan platform berbasis web yang dirancang untuk mendukung proses pemilihan elektronik (_e-voting_) di lingkungan kampus, seperti pemilihan Ketua BEM, Himpunan Mahasiswa, maupung organisasi kampus lainnya. Sistem ini menyediakan mekanisme pemungutan suara yang aman, transparan, dan terstruktur melalui autentikasi akun mahasiswa, serta dilengkapi dengan fitur pengelolaan kandidat, pengaturan periode pemilihan, dan dashboard hasil perhitungan suara secara real-time dalam bentuk grafik presentase, sehingga proses demokrasi kampus menjadi lebih efisien, terdokumentasi secara digital, dan terintegrasi.
 
 ## 👥 Tim
 
@@ -26,10 +25,8 @@ untuk siapa, masalah apa yang diselesaikan.
 ## 🏗️ Architecture
 
 ```
-[React Frontend] <--HTTP--> [FastAPI Backend] <--SQL--> [PostgreSQL]
+[React Frontend] <--HTTP--> [FastAPI Backend] <--SQL--> [PostgreSQL Database]
 ```
-
-*(Diagram ini akan berkembang setiap minggu)*
 
 ## 🚀 Getting Started
 
