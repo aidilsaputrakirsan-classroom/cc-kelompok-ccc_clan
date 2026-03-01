@@ -65,35 +65,40 @@ npm run dev
 
 ## 📁 Project Structure
 
+```
 cc-kelompok-ccc_clan/
-├── backend/                    # Backend area
-|   ├── .gitkeep                
-│   ├── main.py                 
-│   └── requirements.txt        
 │
-├── docs/                       # Dokumentasi Tim
+├── 📁 backend/                    # Backend Application
+│   ├── .gitkeep
+│   ├── main.py
+│   └── requirements.txt
+│
+├── 📁 docs/                       # Team Documentation
 │   ├── member-Ade.md
 │   ├── member-Dani.md
 │   ├── member-dzakwan.md
 │   └── member-risky.md
-|
-├── frontend/                   # Front are
-│   ├── public/                
-│   |   ├── vite.svg
-│   ├── src/                    
-│   │   ├── assets/
-│   │   │   ├── react.svg             
-│   │   ├── App.css            
-│   │   ├── App.jsx             
-│   │   ├── index.css          
-│   │   └── main.jsx          
+│
+├── 📁 frontend/                   # Frontend Application
+│   ├── 📁 public/
+│   │   └── vite.svg
+│   │
+│   ├── 📁 src/
+│   │   ├── 📁 assets/
+│   │   │   └── react.svg
+│   │   ├── App.css
+│   │   ├── App.jsx
+│   │   ├── index.css
+│   │   └── main.jsx
+│   │
 │   ├── .gitignore
 │   ├── eslint.config.js
-│   ├── index.html              
+│   ├── index.html
 │   ├── package-lock.json
-│   ├── package.json 
-│   ├── README.md           
-│   ├── vite.config.js                 
+│   ├── package.json
+│   ├── README.md
+│   └── vite.config.js
 │
 ├── .gitignore
 └── README.md
+```
