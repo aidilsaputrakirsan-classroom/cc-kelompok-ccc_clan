@@ -62,3 +62,38 @@ npm run dev
 | 9-11 | CI/CD Pipeline | ⬜ |
 | 12-14 | Microservices | ⬜ |
 | 15-16 | Final & UAS | ⬜ |
+
+## 📁 Project Structure
+
+cc-kelompok-ccc_clan/
+├── backend/                    # Backend area
+|   ├── .gitkeep                
+│   ├── main.py                 
+│   └── requirements.txt        
+│
+├── docs/                       # Dokumentasi Tim
+│   ├── member-Ade.md
+│   ├── member-Dani.md
+│   ├── member-dzakwan.md
+│   └── member-risky.md
+|
+├── frontend/                   # Front are
+│   ├── public/                
+│   |   ├── vite.svg
+│   ├── src/                    
+│   │   ├── assets/
+│   │   │   ├── react.svg             
+│   │   ├── App.css            
+│   │   ├── App.jsx             
+│   │   ├── index.css          
+│   │   └── main.jsx          
+│   ├── .gitignore
+│   ├── eslint.config.js
+│   ├── index.html              
+│   ├── package-lock.json
+│   ├── package.json 
+│   ├── README.md           
+│   ├── vite.config.js                 
+│
+├── .gitignore
+└── README.md
