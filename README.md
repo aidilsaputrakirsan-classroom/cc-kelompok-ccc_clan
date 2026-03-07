@@ -69,9 +69,19 @@ npm run dev
 cc-kelompok-ccc_clan/
 │
 ├── 📁 backend/                    # Backend Application
+│   ├── v.env/
+│   │   ├── Include/
+│   │   ├── Lib/
+│   │   ├── Scripts/
+│   │   └── pyvenv.cfg
+│   ├── .env.example
 │   ├── .gitkeep
+│   ├── crud.py
+│   ├── database.py
 │   ├── main.py
-│   └── requirements.txt
+│   ├── models.py
+│   ├── requirements.txt
+│   └── schemas.py
 │
 ├── 📁 docs/                       # Team Documentation
 │   ├── member-Ade.md
