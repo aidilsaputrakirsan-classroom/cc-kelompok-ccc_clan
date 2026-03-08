@@ -116,3 +116,301 @@ cc-kelompok-ccc_clan/
 ├── README.md
 └── setup.sh
 ```
+
+## API Documentation
+Base URL saat development
+```
+http://localhost:8000
+```
+
+### 1. Health Check
+Digunakan untuk memastikan API berjalan normal.
+
+Method
+```
+GET
+```
+
+Endpoint
+```
+/health
+```
+
+Request Body
+Tidak ada 
+
+Response Example
+```
+{
+  "status": "healthy",
+  "version": "0.2.0"
+}
+```
+
+### 2. Create Item
+Membuat item baru di dalam database inventory.
+
+Method
+```
+POST
+```
+
+Endpoint
+```
+/items
+```
+
+Request Body
+ ```
+ {
+  "name": "Laptop",
+  "price": 15000000,
+  "description": "Laptop gaming",
+  "quantity": 2
+}
+```
+
+Response Example
+```
+{
+  "id": 1,
+  "name": "Laptop",
+  "price": 15000000,
+  "description": "Laptop gaming",
+  "quantity": 2
+}
+```
+
+### 3. Get Items
+Mengambil semua item dari database dengan menggunakan fitur pagination dan search.
+
+Method
+```
+GET
+```
+
+Endpoint
+```
+/items
+```
+
+Query Parameters
+| Parameter | Tipe    | Deskripsi                                 |
+| --------- | ------- | ----------------------------------------- |
+| skip      | integer | jumlah data yang dilewati                 |
+| limit     | integer | jumlah item per halaman                   |
+| search    | string  | pencarian berdasarkan nama atau deskripsi |
+
+Example Request
+```
+/items?skip=0&limit=20
+```
+
+Response Example
+```
+{
+  "total": 2,
+  "items": [
+    {
+      "id": 1,
+      "name": "Laptop",
+      "price": 15000000,
+      "description": "Laptop gaming",
+      "quantity": 2
+    },
+    {
+      "id": 2,
+      "name": "Mouse",
+      "price": 100000,
+      "description": "Mouse wireless",
+      "quantity": 5
+    }
+  ]
+}
+```
+
+### 3. Item Statistics
+Menampilkan statistik inventory. yang dimana statistik yang ditampilkan yaitu :
+- total jumlah item
+- total nilai inventory
+- item termahal
+- item termurah
+
+Method
+```
+GET
+```
+
+Endpoint
+```
+/items/stats
+```
+Request Body
+TIdak ada
+
+Response Example
+```
+{
+  "total_items": 2,
+  "total_value": 30500000,
+  "most_expensive": {
+    "name": "Laptop",
+    "price": 15000000
+  },
+  "cheapest": {
+    "name": "Mouse",
+    "price": 100000
+  }
+}
+```
+
+### 5. Get item by ID
+Mengambil satu item berdasarkan ID.
+
+Method
+```
+GET
+```
+
+Endpoint
+```
+/items/{item_id}
+```
+
+Example Request
+```
+/items/1
+```
+
+Response Example
+```
+{
+  "id": 1,
+  "name": "Laptop",
+  "price": 15000000,
+  "description": "Laptop gaming",
+  "quantity": 2
+}
+```
+
+Error response
+```
+{
+  "detail": "Item dengan id=1 tidak ditemukan"
+}
+```
+
+### 6. Update item
+Memperbarui data berdasarkan ID. Endpoin ini menggunakan partial update, sehingga hanya field yang dikirim saja yang akan diubah.
+
+Method
+```
+PUT
+```
+
+Endpoint
+```
+/items/{item_id}
+```
+
+Request Body Example
+```
+{
+  "name": "Laptop Gaming Updated",
+  "price": 16000000,
+  "quantity": 3
+}
+```
+
+Response Example
+```
+{
+  "id": 1,
+  "name": "Laptop Gaming Updated",
+  "price": 16000000,
+  "description": "Laptop gaming",
+  "quantity": 3
+}
+```
+
+Error response
+```
+{
+  "detail": "Item dengan id=1 tidak ditemukan"
+}
+```
+
+### 7. Delete Item
+Menghapus item dari database.
+
+Method
+```
+DELETE
+```
+
+Endpoint
+```
+/items/{item_id}
+```
+
+Example Request
+```
+DELETE /items/1
+```
+
+Response
+```
+204 No Content
+```
+
+Error response
+```
+{
+  "detail": "Item dengan id=1 tidak ditemukan"
+}
+```
+
+### 8. Team Information
+Menampilkan informasi tim pengembang.
+
+Method
+```
+GET
+```
+
+Endpoint
+```
+/team
+```
+
+Request Body
+Tidak ada 
+
+Response Example
+```
+{
+  "team": "CCC_Clan",
+  "members": [
+    {
+      "name": "Dzakwan Fatih Fadhilah",
+      "nim": "10231034",
+      "role": "Lead Backend"
+    },
+    {
+      "name": "Risky Nur Fatimah Bahar",
+      "nim": "10231084",
+      "role": "Lead Frontend"
+    },
+    {
+      "name": "Muhammad Dani",
+      "nim": "10231062",
+      "role": "Lead DevOps"
+    },
+    {
+      "name": "Ade Ayu Kholifah Putri",
+      "nim": "10231004",
+      "role": "Lead QA & Docs"
+    }
+  ]
+}
+```
