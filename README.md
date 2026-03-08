@@ -68,11 +68,11 @@ npm run dev
 ```
 cc-kelompok-ccc_clan/
 │
-├── 📁 backend/                    # Backend Application
-│   ├── v.env/
-│   │   ├── Include/
-│   │   ├── Lib/
-│   │   ├── Scripts/
+├── 📁 backend/                    # Backend Applications
+│   ├── 📁 v.env/
+│   │   ├── 📁 Include/
+│   │   ├── 📁 Lib/
+│   │   ├── 📁 Scripts/
 │   │   └── pyvenv.cfg
 │   ├── .env.example
 │   ├── .gitkeep
@@ -83,13 +83,16 @@ cc-kelompok-ccc_clan/
 │   ├── requirements.txt
 │   └── schemas.py
 │
-├── 📁 docs/                       # Team Documentation
+├── 📁 docs/
+│   ├── 📁 img/                       # Documentations
+│   ├── api-test-result.md
+│   ├── database-schema.md
 │   ├── member-Ade.md
 │   ├── member-Dani.md
 │   ├── member-dzakwan.md
 │   └── member-risky.md
 │
-├── 📁 frontend/                   # Frontend Application
+├── 📁 frontend/                   # Frontend Applications
 │   ├── 📁 public/
 │   │   └── vite.svg
 │   │
@@ -110,5 +113,6 @@ cc-kelompok-ccc_clan/
 │   └── vite.config.js
 │
 ├── .gitignore
-└── README.md
+├── README.md
+└── setup.sh
 ```
