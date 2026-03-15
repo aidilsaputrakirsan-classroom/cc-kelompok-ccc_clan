@@ -3,6 +3,7 @@ import Header from "./components/Header"
 import SearchBar from "./components/SearchBar"
 import ItemForm from "./components/ItemForm"
 import ItemList from "./components/ItemList"
+import Toast from "./components/Toast"
 import { fetchItems, createItem, updateItem, deleteItem, checkHealth } from "./services/api"
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
   const [editingItem, setEditingItem] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState("terbaru")
+  const [toasts, setToasts] = useState([])
 
   // ==================== LOAD DATA ====================
   const loadItems = useCallback(async (search = "") => {
@@ -38,6 +40,16 @@ function App() {
     loadItems()
   }, [loadItems])
 
+  // ==================== TOAST ====================
+  const addToast = (message, type) => {
+    const id = Date.now()
+    setToasts((prev) => [...prev, { id, message, type }])
+  }
+
+  const removeToast = (id) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id))
+  }
+
   // ==================== SORTING =====================
   const sortedItems = useMemo(() => {
     const sorted = [...items]
@@ -58,16 +70,22 @@ function App() {
   // ==================== HANDLERS ====================
 
   const handleSubmit = async (itemData, editId) => {
-    if (editId) {
-      // Mode edit
-      await updateItem(editId, itemData)
-      setEditingItem(null)
-    } else {
-      // Mode create
-      await createItem(itemData)
+    try {
+      if (editId) {
+        // Mode edit
+        await updateItem(editId, itemData)
+        addToast("Item berhasil diupdate!", "success")
+        setEditingItem(null)
+      } else {
+        // Mode create
+        await createItem(itemData)
+        addToast("Item berhasil dibuat!", "success")
+      }
+      // Reload daftar items
+      loadItems(searchQuery)
+    } catch (err) {
+      addToast("Gagal: " + err.message, "error")
     }
-    // Reload daftar items
-    loadItems(searchQuery)
   }
 
   const handleEdit = (item) => {
@@ -82,9 +100,10 @@ function App() {
 
     try {
       await deleteItem(id)
+      addToast("Item berhasil dihapus!", "success")
       loadItems(searchQuery)
     } catch (err) {
-      alert("Gagal menghapus: " + err.message)
+      addToast("Gagal menghapus: " + err.message, "error")
     }
   }
 
@@ -131,6 +150,15 @@ function App() {
           loading={loading}
         />
       </div>
+      {toasts.map((toast, index) => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => removeToast(toast.id)}
+          top={20 + index * 70}
+        />
+      ))}
     </div>
   )
 }
