@@ -28,6 +28,7 @@ Screenshot hasil testing:
 ## 3. GET /items
 
 Endpoint untuk mengambil semua data item.
+Tested pagination endpoint /items with skip and limit parameters via Swagger.
 
 Screenshot hasil testing:
 
