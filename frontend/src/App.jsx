@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import Header from "./components/Header"
 import SearchBar from "./components/SearchBar"
 import ItemForm from "./components/ItemForm"
@@ -13,6 +13,7 @@ function App() {
   const [isConnected, setIsConnected] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [sortBy, setSortBy] = useState("terbaru")
 
   // ==================== LOAD DATA ====================
   const loadItems = useCallback(async (search = "") => {
@@ -26,8 +27,9 @@ function App() {
     } finally {
       setLoading(false)
     }
-  }, [])
 
+  }, [])
+  
   // ==================== ON MOUNT ====================
   useEffect(() => {
     // Cek koneksi API
@@ -35,6 +37,23 @@ function App() {
     // Load items
     loadItems()
   }, [loadItems])
+
+  // ==================== SORTING =====================
+  const sortedItems = useMemo(() => {
+    const sorted = [...items]
+
+    if (sortBy === "nama") {
+      sorted.sort((a, b) => a.name.localeCompare(b.name))
+    }
+    else if (sortBy === "harga") {
+      sorted.sort((a, b) => a.price - b.price)
+    }
+    else if (sortBy === "terbaru") {
+      sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    }
+
+    return sorted
+  }, [items, sortBy])
 
   // ==================== HANDLERS ====================
 
@@ -89,8 +108,24 @@ function App() {
           onCancelEdit={handleCancelEdit}
         />
         <SearchBar onSearch={handleSearch} />
+
+        <div style={styles.sortContainer}>
+          <label htmlFor="sort" style={styles.sortLabel}>
+            Urutkan berdasarkan:
+          </label>
+          <select
+           id="sort"
+           value={sortBy}
+           onChange={(e) => setSortBy(e.target.value)}
+           style={styles.sortSelect}
+          >
+            <option value="terbaru">Terbaru</option>
+            <option value="nama">Nama</option>
+            <option value="harga">Harga</option>
+          </select>
+        </div>
         <ItemList
-          items={items}
+          items={sortedItems}
           onEdit={handleEdit}
           onDelete={handleDelete}
           loading={loading}
@@ -101,6 +136,29 @@ function App() {
 }
 
 const styles = {
+  sortContainer: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.75rem",
+    marginBottom: "1.5rem",
+    backgroundColor: "#ffffff",
+    padding: "0.9rem 1rem",
+    borderRadius: "10px",
+    border: "1px solid #e0e0e0",
+  },
+  sortLabel: {
+    fontSize: "0.95rem",
+    fontWeight: "bold",
+    color: "#333",
+  },
+  sortSelect: {
+    padding: "0.6rem 0.8rem",
+    borderRadius: "8px",
+    border: "2px solid #ddd",
+    fontSize: "0.95rem",
+    outline: "none",
+    backgroundColor: "white",
+  },
   app: {
     minHeight: "100vh",
     backgroundColor: "#f0f2f5",
