@@ -6,7 +6,7 @@ import ItemList from "./components/ItemList"
 import LoginPage from "./components/LoginPage"
 import {
   fetchItems, createItem, updateItem, deleteItem,
-  checkHealth, login, register, setToken, clearToken,
+  checkHealth, login, register, clearToken,
 } from "./services/api"
 
 function App() {
@@ -21,6 +21,17 @@ function App() {
   const [isConnected, setIsConnected] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [notification, setNotification] = useState(null)
+  const [loadingSubmit, setLoadingSubmit] = useState(false)
+
+  // ==================== NOTIFICATION ====================
+  const showNotification = (message, type = "success") => {
+    setNotification({ message, type })
+  
+    setTimeout(() => {
+      setNotification(null)
+    }, 3000)
+  }
 
   // ==================== LOAD DATA ====================
   const loadItems = useCallback(async (search = "") => {
@@ -87,17 +98,24 @@ function App() {
   // ==================== ITEM HANDLERS ====================
 
   const handleSubmit = async (itemData, editId) => {
+    setLoadingSubmit(true) // ⬅️ START loading
     try {
       if (editId) {
+        await new Promise(resolve => setTimeout(resolve, 1500)) // delay 1.5 detik
         await updateItem(editId, itemData)
+        showNotification("Item berhasil diupdate")
         setEditingItem(null)
       } else {
+        await new Promise(resolve => setTimeout(resolve, 1500)) // delay 1.5 detik
         await createItem(itemData)
+        showNotification("Item berhasil ditambahkan")
       }
       loadItems(searchQuery)
     } catch (err) {
       if (err.message === "UNAUTHORIZED") handleLogout()
-      else throw err
+      else showNotification(err.message, "error")
+    } finally {
+      setLoadingSubmit(false) // ⬅️ STOP loading
     }
   }
 
@@ -111,10 +129,11 @@ function App() {
     if (!window.confirm(`Yakin ingin menghapus "${item?.name}"?`)) return
     try {
       await deleteItem(id)
+      showNotification("Item berhasil dihapus")
       loadItems(searchQuery)
     } catch (err) {
       if (err.message === "UNAUTHORIZED") handleLogout()
-      else alert("Gagal menghapus: " + err.message)
+      else showNotification(err.message, "error")
     }
   }
 
@@ -122,6 +141,7 @@ function App() {
     setSearchQuery(query)
     loadItems(query)
   }
+
 
   // ==================== RENDER ====================
 
@@ -134,6 +154,21 @@ function App() {
   return (
     <div style={styles.app}>
       <div style={styles.container}>
+      {notification && (
+      <div
+        style={{
+          padding: "10px",
+          marginBottom: "10px",
+          borderRadius: "6px",
+          color: "white",
+          backgroundColor:
+            notification.type === "error" ? "#e74c3c" : "#2ecc71",
+          textAlign: "center",
+        }}
+      >
+        {notification.message}
+      </div>
+      )}
         <Header
           totalItems={totalItems}
           isConnected={isConnected}
@@ -144,6 +179,7 @@ function App() {
           onSubmit={handleSubmit}
           editingItem={editingItem}
           onCancelEdit={() => setEditingItem(null)}
+          loading={loadingSubmit}
         />
         <SearchBar onSearch={handleSearch} />
         <ItemList
