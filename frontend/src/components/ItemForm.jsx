@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 
-function ItemForm({ onSubmit, editingItem, onCancelEdit }) {
+function ItemForm({ onSubmit, editingItem, onCancelEdit, loading }) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -121,8 +121,12 @@ function ItemForm({ onSubmit, editingItem, onCancelEdit }) {
         </div>
 
         <div style={styles.actions}>
-          <button type="submit" style={styles.btnSubmit}>
-            {editingItem ? "💾 Update Item" : "➕ Tambah Item"}
+          <button type="submit" style={styles.btnSubmit} disabled={loading}>
+            {loading
+              ? "⏳ Loading..."
+              : editingItem
+              ? "💾 Update Item"
+              : "➕ Tambah Item"}
           </button>
           {editingItem && (
             <button type="button" onClick={onCancelEdit} style={styles.btnCancel}>

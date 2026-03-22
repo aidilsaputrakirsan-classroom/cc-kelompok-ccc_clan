@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from models import Item
-from schemas import ItemCreate, ItemUpdate
+from models import Item, User
+from schemas import ItemCreate, ItemUpdate, UserCreate
+from auth import hash_password, verify_password
 
 
 def create_item(db: Session, item_data: ItemCreate) -> Item:
@@ -72,9 +73,12 @@ def delete_item(db: Session, item_id: int) -> bool:
     db.commit()
     return True
 
+<<<<<<< HEAD
 from models import Item, User
 from schemas import ItemCreate, ItemUpdate, UserCreate
 from auth import hash_password, verify_password
+=======
+>>>>>>> 8ef9a885b03348f71c9bea1e03caaf44e609d8f0
 
 
 # ==================== USER CRUD ====================
