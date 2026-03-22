@@ -1,21 +1,26 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Header from "./components/Header"
 import SearchBar from "./components/SearchBar"
 import ItemForm from "./components/ItemForm"
 import ItemList from "./components/ItemList"
-import Toast from "./components/Toast"
-import { fetchItems, createItem, updateItem, deleteItem, checkHealth } from "./services/api"
+import LoginPage from "./components/LoginPage"
+import {
+  fetchItems, createItem, updateItem, deleteItem,
+  checkHealth, login, register, setToken, clearToken,
+} from "./services/api"
 
 function App() {
-  // ==================== STATE ====================
+  // ==================== AUTH STATE ====================
+  const [user, setUser] = useState(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // ==================== APP STATE ====================
   const [items, setItems] = useState([])
   const [totalItems, setTotalItems] = useState(0)
   const [loading, setLoading] = useState(true)
   const [isConnected, setIsConnected] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [sortBy, setSortBy] = useState("terbaru")
-  const [toasts, setToasts] = useState([])
 
   // ==================== LOAD DATA ====================
   const loadItems = useCallback(async (search = "") => {
@@ -25,85 +30,91 @@ function App() {
       setItems(data.items)
       setTotalItems(data.total)
     } catch (err) {
+      if (err.message === "UNAUTHORIZED") {
+        handleLogout()
+      }
       console.error("Error loading items:", err)
     } finally {
       setLoading(false)
     }
-
   }, [])
-  
-  // ==================== ON MOUNT ====================
+
   useEffect(() => {
-    // Cek koneksi API
     checkHealth().then(setIsConnected)
-    // Load items
-    loadItems()
-  }, [loadItems])
+  }, [])
 
-  // ==================== TOAST ====================
-  const addToast = (message, type) => {
-    const id = Date.now()
-    setToasts((prev) => [...prev, { id, message, type }])
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadItems()
+    }
+  }, [isAuthenticated, loadItems])
+
+  // ==================== AUTH HANDLERS ====================
+
+  const handleLogin = async (email, password) => {
+    const data = await login(email, password)
+    setUser(data.user)
+    setIsAuthenticated(true)
   }
 
-  const removeToast = (id) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id))
+  const handleRegister = async (userData) => {
+    try {
+      // Register lalu otomatis login
+      await register(userData)
+      await handleLogin(userData.email, userData.password)
+    } catch (err) {
+      // paksa error jadi string yang aman
+      if (err instanceof Error) {
+        throw err
+      } else if (typeof err === "object") {
+        throw new Error(err?.message || err?.detail || "Register gagal")
+      } else {
+        throw new Error("Register gagal")
+      }
+    }
   }
 
-  // ==================== SORTING =====================
-  const sortedItems = useMemo(() => {
-    const sorted = [...items]
+  const handleLogout = () => {
+    clearToken()
+    setUser(null)
+    setIsAuthenticated(false)
+    setItems([])
+    setTotalItems(0)
+    setEditingItem(null)
+    setSearchQuery("")
+  }
 
-    if (sortBy === "nama") {
-      sorted.sort((a, b) => a.name.localeCompare(b.name))
-    }
-    else if (sortBy === "harga") {
-      sorted.sort((a, b) => a.price - b.price)
-    }
-    else if (sortBy === "terbaru") {
-      sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    }
-
-    return sorted
-  }, [items, sortBy])
-
-  // ==================== HANDLERS ====================
+  // ==================== ITEM HANDLERS ====================
 
   const handleSubmit = async (itemData, editId) => {
     try {
       if (editId) {
-        // Mode edit
         await updateItem(editId, itemData)
-        addToast("Item berhasil diupdate!", "success")
         setEditingItem(null)
       } else {
-        // Mode create
         await createItem(itemData)
-        addToast("Item berhasil dibuat!", "success")
       }
-      // Reload daftar items
       loadItems(searchQuery)
     } catch (err) {
-      addToast("Gagal: " + err.message, "error")
+      if (err.message === "UNAUTHORIZED") handleLogout()
+      else throw err
     }
   }
 
   const handleEdit = (item) => {
     setEditingItem(item)
-    // Scroll ke atas ke form
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
   const handleDelete = async (id) => {
     const item = items.find((i) => i.id === id)
     if (!window.confirm(`Yakin ingin menghapus "${item?.name}"?`)) return
-
     try {
       await deleteItem(id)
-      addToast("Item berhasil dihapus!", "success")
       loadItems(searchQuery)
     } catch (err) {
-      addToast("Gagal menghapus: " + err.message, "error")
+      if (err.message === "UNAUTHORIZED") handleLogout()
+      else alert("Gagal menghapus: " + err.message)
     }
   }
 
@@ -112,91 +123,48 @@ function App() {
     loadItems(query)
   }
 
-  const handleCancelEdit = () => {
-    setEditingItem(null)
+  // ==================== RENDER ====================
+
+  // Jika belum login, tampilkan login page
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} onRegister={handleRegister} />
   }
 
-  // ==================== RENDER ====================
+  // Jika sudah login, tampilkan main app
   return (
     <div style={styles.app}>
       <div style={styles.container}>
-        <Header totalItems={totalItems} isConnected={isConnected} />
+        <Header
+          totalItems={totalItems}
+          isConnected={isConnected}
+          user={user}
+          onLogout={handleLogout}
+        />
         <ItemForm
           onSubmit={handleSubmit}
           editingItem={editingItem}
-          onCancelEdit={handleCancelEdit}
+          onCancelEdit={() => setEditingItem(null)}
         />
         <SearchBar onSearch={handleSearch} />
-
-        <div style={styles.sortContainer}>
-          <label htmlFor="sort" style={styles.sortLabel}>
-            Urutkan berdasarkan:
-          </label>
-          <select
-           id="sort"
-           value={sortBy}
-           onChange={(e) => setSortBy(e.target.value)}
-           style={styles.sortSelect}
-          >
-            <option value="terbaru">Terbaru</option>
-            <option value="nama">Nama</option>
-            <option value="harga">Harga</option>
-          </select>
-        </div>
         <ItemList
-          items={sortedItems}
+          items={items}
           onEdit={handleEdit}
           onDelete={handleDelete}
           loading={loading}
         />
       </div>
-      {toasts.map((toast, index) => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          onClose={() => removeToast(toast.id)}
-          top={20 + index * 70}
-        />
-      ))}
     </div>
   )
 }
 
 const styles = {
-  sortContainer: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.75rem",
-    marginBottom: "1.5rem",
-    backgroundColor: "#ffffff",
-    padding: "0.9rem 1rem",
-    borderRadius: "10px",
-    border: "1px solid #e0e0e0",
-  },
-  sortLabel: {
-    fontSize: "0.95rem",
-    fontWeight: "bold",
-    color: "#333",
-  },
-  sortSelect: {
-    padding: "0.6rem 0.8rem",
-    borderRadius: "8px",
-    border: "2px solid #ddd",
-    fontSize: "0.95rem",
-    outline: "none",
-    backgroundColor: "white",
-  },
   app: {
     minHeight: "100vh",
     backgroundColor: "#f0f2f5",
     padding: "2rem",
     fontFamily: "'Segoe UI', Arial, sans-serif",
   },
-  container: {
-    maxWidth: "900px",
-    margin: "0 auto",
-  },
+  container: { maxWidth: "900px", margin: "0 auto" },
 }
 
 export default App
