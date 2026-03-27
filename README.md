@@ -420,3 +420,192 @@ Response Example
   ]
 }
 ```
+## Test Case Auth dan CRUD
+### 1. Register User
+
+**Endpoint:** `POST /auth/register`
+
+**Request Body:**
+
+```json
+{
+  "email": "qatest@gmail.com",
+  "name": "lead qa",
+  "password": "Testing123!"
+}
+```
+
+**Expected Result:**
+
+* Status: `201 Created`
+* User berhasil dibuat
+
+**Status:** ✅ berhasil
+
+### 2. Login User
+
+**Endpoint:** `POST /auth/login`
+
+**Request Body:**
+
+```json
+{
+  "email": "qatest@gmail.com",
+  "password": "Testing123!"
+}
+```
+
+**Expected Result:**
+
+* Status: `200`
+* Mendapatkan `access_token`
+
+**Contoh Response:**
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzc0MjA0MDA5fQ.3lOVVsakaBKWzUv1ZLT_zQLv7G8mG6xIcWngKMhXA3s",
+  "token_type": "bearer",
+  "user": {
+    "id": 2,
+    "email": "qatest@gmail.com",
+    "name": "lead qa",
+    "is_active": true,
+    "created_at": "2026-03-23T01:25:54.286166+08:00"
+  }
+}
+```
+
+**Status:** ✅ berhasil
+
+### 3. Authorize di Swagger (BUG)
+
+**Expected Flow:**
+
+1. Klik tombol **Authorize 🔒**
+2. Input token:
+
+```
+Bearer <access_token>
+```
+
+3. Klik Authorize
+
+**Actual Result:**
+
+* Tidak ada field untuk input token
+* Muncul error:
+
+```
+Auth error: Unprocessable Entity
+```
+
+**Status:** ❌ Gagal
+
+### 4. Get Current User
+
+**Endpoint:** `GET /auth/me`
+
+**Expected Result:**
+
+* Status: `200`
+* Mengembalikan data user
+
+**Actual Result:**
+
+* Tidak bisa karena token tidak bisa di-set
+
+**Status:** ❌ gagal
+
+### 5. CRUD Items (Protected)
+
+Semua endpoint berikut membutuhkan token:
+
+* `POST /items`
+* `GET /items`
+* `PUT /items/{id}`
+* `DELETE /items/{id}`
+
+**Expected Result:**
+
+* Bisa akses setelah login
+
+**Actual Result:**
+
+* Selalu error `401 Unauthorized`
+
+**Status:** ❌ gagal
+
+---
+
+## 🔐 Authentication
+
+### 🔑 Cara Kerja
+
+1. User register
+2. User login → mendapatkan JWT token
+3. Token dikirim ke header:
+
+```
+Authorization: Bearer <token>
+```
+
+4. Backend memverifikasi token
+
+## ⚠️ BUG AUTH
+
+### ❌ Masalah:
+
+Swagger tidak menyediakan input token saat klik **Authorize**
+
+### 💥 Penyebab:
+
+Di file `auth.py`:
+
+```python
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+```
+
+Masalah:
+
+* Swagger default menganggap login menggunakan **form-data (username & password)**
+* Namun pada API memakai **JSON body**
+* Akibatnya Swagger gagal generate form token → muncul error `422 Unprocessable Entity`
+
+---
+
+## 📦 API Endpoint List
+
+### 🔓 Public Endpoints
+
+| Method | Endpoint         | Description     |
+| ------ | ---------------- | --------------- |
+| GET    | `/health`        | Cek server      |
+| POST   | `/auth/register` | Registrasi user |
+| POST   | `/auth/login`    | Login user      |
+
+
+### 🔒 Protected Endpoints
+
+| Method | Endpoint      | Description |
+| ------ | ------------- | ----------- |
+| GET    | `/auth/me`    | Data user   |
+| POST   | `/items`      | Create item |
+| GET    | `/items`      | List items  |
+| GET    | `/items/{id}` | Get item    |
+| PUT    | `/items/{id}` | Update item |
+| DELETE | `/items/{id}` | Delete item |
+
+## 🐞 Bug Report
+
+### 1. Swagger Authorize Error
+
+* Error: `422 Unprocessable Entity`
+* Penyebab: OAuth2PasswordBearer tidak cocok dengan JSON login
+* Impact: Tidak bisa testing protected endpoint di Swagger
+
+### 2. Protected Endpoint Tidak Bisa Diakses
+
+* Error: `401 Unauthorized`
+* Penyebab: Token tidak pernah dikirim
+* Root cause: Swagger auth gagal
