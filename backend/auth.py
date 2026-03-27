@@ -23,9 +23,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # OAuth2 scheme — FastAPI akan mencari header "Authorization: Bearer <token>"
-=======
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
->>>>>>> 8ef9a885b03348f71c9bea1e03caaf44e609d8f0
 
 
 # ==================== PASSWORD ====================
@@ -47,18 +45,15 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
-=======
     token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     print(f" [DEBUG] Token created for user: {to_encode.get('sub')}")
     print(f" [DEBUG] Token: {token[:50]}...")
     return token
->>>>>>> 8ef9a885b03348f71c9bea1e03caaf44e609d8f0
 
 
 def decode_token(token: str) -> dict:
     """Decode dan verifikasi JWT token."""
     try:
-=======
         print(f" [DEBUG] Token received: {token[:30]}...")
         print(f" [DEBUG] SECRET_KEY being used: {SECRET_KEY[:30]}...")
         print(f" [DEBUG] ALGORITHM: {ALGORITHM}")
@@ -69,22 +64,18 @@ def decode_token(token: str) -> dict:
         
     except JWTError as e:
         print(f" [ERROR] JWT Decode Failed: {str(e)}")
->>>>>>> 8ef9a885b03348f71c9bea1e03caaf44e609d8f0
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token tidak valid atau sudah expired",
             headers={"WWW-Authenticate": "Bearer"},
-        )<<<<<< HEAD
+        )
 
-=======
->>>>>>> 8ef9a885b03348f71c9bea1e03caaf44e609d8f0
 # ==================== DEPENDENCY ====================
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> User:
-=======
     print(f" [DEBUG] get_current_user called with token: {token[:30]}...")
     payload = decode_token(token)
     user_id: int = int(payload.get("sub"))  # ← Konvert string ke int
@@ -94,35 +85,27 @@ def get_current_user(
 
     if user_id is None:
         print(f" [ERROR] user_id is None!")
->>>>>>> 8ef9a885b03348f71c9bea1e03caaf44e609d8f0
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token tidak valid",
         )
 
     user = db.query(User).filter(User.id == user_id).first()
-=======
     print(f" [DEBUG] User from DB: {user.email if user else 'NOT FOUND'}")
 
     if user is None:
         print(f" [ERROR] User not found in database!")
->>>>>>> 8ef9a885b03348f71c9bea1e03caaf44e609d8f0
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User tidak ditemukan",
         )
 
     if not user.is_active:
-
-=======
         print(f" [ERROR] User is not active!")
->>>>>>> 8ef9a885b03348f71c9bea1e03caaf44e609d8f0
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Akun tidak aktif",
         )
 
-=======
     print(f" [SUCCESS] User authenticated: {user.email}")
->>>>>>> 8ef9a885b03348f71c9bea1e03caaf44e609d8f0
     return user

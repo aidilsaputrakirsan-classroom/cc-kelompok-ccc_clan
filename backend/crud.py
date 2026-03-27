@@ -73,12 +73,6 @@ def delete_item(db: Session, item_id: int) -> bool:
     db.commit()
     return True
 
-<<<<<<< HEAD
-from models import Item, User
-from schemas import ItemCreate, ItemUpdate, UserCreate
-from auth import hash_password, verify_password
-=======
->>>>>>> 8ef9a885b03348f71c9bea1e03caaf44e609d8f0
 
 
 # ==================== USER CRUD ====================
