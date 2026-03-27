@@ -32,7 +32,7 @@ Deskripsi : SIPILIH (Sistem Informasi Pemilihan Digital) merupakan platform berb
 
 ### Prasyarat
 - Python 3.10+
-- Node.js 18+
+- Node.js 19+
 - Git
 
 ### Backend
