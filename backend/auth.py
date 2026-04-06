@@ -109,3 +109,18 @@ def get_current_user(
 
     print(f" [SUCCESS] User authenticated: {user.email}")
     return user
+
+def require_role(allowed_roles: list):
+    """
+    Dependency untuk membatasi akses berdasarkan role.
+    Contoh:
+    require_role(["admin", "superadmin"])
+    """
+    def role_checker(current_user: User = Depends(get_current_user)):
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=403,
+                detail="Akses ditolak: role tidak memiliki izin"
+            )
+        return current_user
+    return role_checker

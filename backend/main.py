@@ -9,24 +9,24 @@ from models import Base, User
 from schemas import (
     ItemCreate, ItemUpdate, ItemResponse, ItemListResponse,
     UserCreate, UserResponse, LoginRequest, TokenResponse,
+    CandidateCreate
 )
 from auth import create_access_token, get_current_user
 import crud
 
 load_dotenv()
 
-# Buat semua tabel
+# ================= INIT =================
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Cloud App API",
-    description="REST API untuk mata kuliah Komputasi Awan — SI ITK",
-    version="0.4.0",
+    version="1.0.0"
 )
 
-# ==================== CORS (FIXED) ====================
+# ================= CORS =================
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
-origins_list = [origin.strip() for origin in allowed_origins.split(",")]
+origins_list = [i.strip() for i in allowed_origins.split(",")]
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,139 +36,169 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ================= ROLE CHECK =================
+def require_role(roles: list):
+    def checker(current_user: User = Depends(get_current_user)):
+        if current_user.role not in roles:
+            raise HTTPException(status_code=403, detail="Akses ditolak")
+        return current_user
+    return checker
 
-# ==================== HEALTH CHECK ====================
-
+# ================= HEALTH =================
 @app.get("/health")
-def health_check():
-    return {"status": "healthy", "version": "0.4.0"}
+def health():
+    return {"status": "ok"}
 
+# ================= AUTH =================
 
-# ==================== AUTH ENDPOINTS (PUBLIC) ====================
-
-@app.post("/auth/register", response_model=UserResponse, status_code=201)
-def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Registrasi user baru dengan validasi email dan password."""
-    user = crud.create_user(db=db, user_data=user_data)
-    if not user:
-        raise HTTPException(
-            status_code=400, 
-            detail="Email sudah terdaftar. Gunakan email lain untuk registrasi."
-        )
-    return user
+@app.post("/auth/register", response_model=UserResponse)
+def register(user: UserCreate, db: Session = Depends(get_db)):
+    new_user = crud.create_user(db, user)
+    if not new_user:
+        raise HTTPException(status_code=400, detail="Email sudah digunakan")
+    return new_user
 
 
 @app.post("/auth/login", response_model=TokenResponse)
-def login(login_data: LoginRequest, db: Session = Depends(get_db)):
-    user = crud.authenticate_user(db=db, email=login_data.email, password=login_data.password)
-    if not user:
-        raise HTTPException(status_code=401, detail="Email atau password salah")
+def login(data: LoginRequest, db: Session = Depends(get_db)):
+    user = crud.authenticate_user(db, data.email, data.password)
 
-    token = create_access_token(data={"sub": str(user.id)})  # ← Tambah str()
+    if not user:
+        raise HTTPException(status_code=401, detail="Email / password salah")
+
+    token = create_access_token(
+        data={
+            "sub": str(user.id),
+            "role": user.role
+        }
+    )
+
     return {
         "access_token": token,
         "token_type": "bearer",
-        "user": user,
+        "user": user
     }
 
 
 @app.get("/auth/me", response_model=UserResponse)
-def get_me(current_user: User = Depends(get_current_user)):
-    """Ambil profil user yang sedang login."""
+def me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-# ==================== ITEM ENDPOINTS (PROTECTED) ====================
+# ================= ITEM =================
 
-@app.post("/items", response_model=ItemResponse, status_code=201)
+@app.post("/items", response_model=ItemResponse)
 def create_item(
     item: ItemCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ):
-    """Buat item baru. **Membutuhkan autentikasi.**"""
-    return crud.create_item(db=db, item_data=item)
+    return crud.create_item(db, item)
 
 
 @app.get("/items", response_model=ItemListResponse)
-def list_items(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+def get_items(
+    skip: int = Query(0),
+    limit: int = Query(20),
     search: str = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ):
-    """Ambil daftar items. **Membutuhkan autentikasi.**"""
-    return crud.get_items(db=db, skip=skip, limit=limit, search=search)
+    return crud.get_items(db, skip, limit, search)
 
 
-@app.get("/items/{item_id}", response_model=ItemResponse)
+@app.get("/items/{id}", response_model=ItemResponse)
 def get_item(
-    item_id: int,
+    id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ):
-    """Ambil satu item. **Membutuhkan autentikasi.**"""
-    item = crud.get_item(db=db, item_id=item_id)
+    item = crud.get_item(db, id)
     if not item:
-        raise HTTPException(status_code=404, detail=f"Item {item_id} tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Item tidak ditemukan")
     return item
 
 
-@app.put("/items/{item_id}", response_model=ItemResponse)
+@app.put("/items/{id}", response_model=ItemResponse)
 def update_item(
-    item_id: int,
+    id: int,
     item: ItemUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ):
-    """Update item. **Membutuhkan autentikasi.**"""
-    updated = crud.update_item(db=db, item_id=item_id, item_data=item)
+    updated = crud.update_item(db, id, item)
     if not updated:
-        raise HTTPException(status_code=404, detail=f"Item {item_id} tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Item tidak ditemukan")
     return updated
 
 
-@app.delete("/items/{item_id}", status_code=204)
+@app.delete("/items/{id}")
 def delete_item(
-    item_id: int,
+    id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ):
-    """Hapus item. **Membutuhkan autentikasi.**"""
-    success = crud.delete_item(db=db, item_id=item_id)
+    success = crud.delete_item(db, id)
     if not success:
-        raise HTTPException(status_code=404, detail=f"Item {item_id} tidak ditemukan")
-    return None
+        raise HTTPException(status_code=404, detail="Item tidak ditemukan")
+    return {"message": "Deleted"}
 
-@app.get("/items/stats")
-def get_items_stats(
+
+# ================= CANDIDATE =================
+
+@app.post("/candidates")
+def register_candidate(
+    data: CandidateCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ):
-    """
-    Ambil statistik items. **Membutuhkan autentikasi.**
-    
-    Returns:
-    - total_items: Total jumlah item
-    - avg_price: Rata-rata harga item
-    - total_quantity: Total stok semua item
-    - total_value: Total nilai inventori (qty × price)
-    """
-    return crud.get_items_stats(db=db)
+    return crud.register_candidate(db, user.id, data)
 
 
-# ==================== TEAM INFO ====================
+# ================= ADMIN =================
+
+@app.get("/admin/candidates")
+def list_candidates(
+    db: Session = Depends(get_db),
+    user: User = Depends(require_role(["admin", "superadmin"]))
+):
+    return crud.get_candidates(db)
+
+
+@app.post("/admin/candidates/{id}/approve")
+def approve_candidate(
+    id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_role(["admin", "superadmin"]))
+):
+    result = crud.approve_candidate(db, id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Not found")
+    return result
+
+
+@app.post("/admin/candidates/{id}/reject")
+def reject_candidate(
+    id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_role(["admin", "superadmin"]))
+):
+    result = crud.reject_candidate(db, id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Not found")
+    return result
+
+
+# ================= TEAM =================
 
 @app.get("/team")
-def team_info():
+def team():
     return {
         "team": "CCC_Clan",
         "members": [
-            # TODO: Isi dengan data tim Anda
-            {"name": "Dzakwan Fatih Fadhilah", "nim": "10231034", "role": "Lead Backend"},
-            {"name": "Risky Nur Fatimah Bahar", "nim": "10231084", "role": "Lead Frontend"},
-            {"name": "Muhammad Dani", "nim": "10231062", "role": "Lead DevOps"},
-            {"name": "Ade Ayu Kholifah Putri", "nim": "10231004", "role": "Lead QA & Docs"},
+            {"name": "Dzakwan Fatih Fadhilah", "nim": "10231034"},
+            {"name": "Risky Nur Fatimah Bahar", "nim": "10231084"},
+            {"name": "Muhammad Dani", "nim": "10231062"},
+            {"name": "Ade Ayu Kholifah Putri", "nim": "10231004"},
         ],
     }
