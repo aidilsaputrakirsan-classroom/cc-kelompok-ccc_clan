@@ -1,74 +1,127 @@
-import { useState } from "react"
+import { useState } from "react";
 
 function LoginPage({ onLogin, onRegister }) {
-  const [isRegister, setIsRegister] = useState(false)
+  const [isRegister, setIsRegister] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     name: "",
-  })
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
+    nim: "",
+    prodi: "",
+    jurusan: "",
+    fakultas: "",
+    angkatan: "",
+  });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
-  }
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
     try {
       if (isRegister) {
         if (!formData.name.trim()) {
-          setError("Nama wajib diisi")
-          setLoading(false)
-          return
+          setError("Nama wajib diisi");
+          setLoading(false);
+          return;
         }
+
+        if (!formData.nim.trim()) {
+          setError("NIM wajib diisi");
+          setLoading(false);
+          return;
+        }
+
+        if (!formData.prodi.trim()) {
+          setError("Prodi wajib diisi");
+          setLoading(false);
+          return;
+        }
+
+        if (!formData.jurusan.trim()) {
+          setError("Jurusan wajib diisi");
+          setLoading(false);
+          return;
+        }
+
+        if (!formData.fakultas.trim()) {
+          setError("Fakultas wajib diisi");
+          setLoading(false);
+          return;
+        }
+
+        if (!formData.angkatan) {
+          setError("Angkatan wajib diisi");
+          setLoading(false);
+          return;
+        }
+
         if (formData.password.length < 8) {
-          setError("Password minimal 8 karakter")
-          setLoading(false)
-          return
+          setError("Password minimal 8 karakter");
+          setLoading(false);
+          return;
         }
-        await onRegister(formData)
+
+        await onRegister({
+          ...formData,
+          angkatan: Number(formData.angkatan),
+        });
       } else {
-        await onLogin(formData.email, formData.password)
+        await onLogin(formData.email, formData.password);
       }
     } catch (err) {
-        console.log("ERROR:", err)
+      console.log("ERROR:", err);
 
-        if (typeof err === "string") {
-         setError(err)
-        } else if (err?.message) {
-         setError(err.message)
-        } else if (err?.detail) {
-         setError(err.detail)
-        } else {
-         setError("Terjadi kesalahan")
-        }
+      if (typeof err === "string") {
+        setError(err);
+      } else if (err?.message) {
+        setError(err.message);
+      } else if (err?.detail) {
+        setError(err.detail);
+      } else {
+        setError("Terjadi kesalahan");
+      }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div style={styles.wrapper}>
+      <div style={styles.overlay} />
       <div style={styles.card}>
-        <h1 style={styles.title}>☁️ Cloud App</h1>
-        <p style={styles.subtitle}>Komputasi Awan — SI ITK</p>
+        <div style={styles.headerBox}>
+          <h1 style={styles.title}>SIPILIH</h1>
+          <p style={styles.subtitle}>Sistem Pemilihan Kampus</p>
+        </div>
 
-        {/* Tab Switch */}
         <div style={styles.tabs}>
           <button
-            style={{ ...styles.tab, ...(isRegister ? {} : styles.tabActive) }}
-            onClick={() => { setIsRegister(false); setError("") }}
+            type="button"
+            style={{ ...styles.tab, ...(!isRegister ? styles.tabActive : {}) }}
+            onClick={() => {
+              setIsRegister(false);
+              setError("");
+            }}
           >
             Login
           </button>
           <button
+            type="button"
             style={{ ...styles.tab, ...(isRegister ? styles.tabActive : {}) }}
-            onClick={() => { setIsRegister(true); setError("") }}
+            onClick={() => {
+              setIsRegister(true);
+              setError("");
+            }}
           >
             Register
           </button>
@@ -78,17 +131,83 @@ function LoginPage({ onLogin, onRegister }) {
 
         <form onSubmit={handleSubmit} style={styles.form}>
           {isRegister && (
-            <div style={styles.field}>
-              <label style={styles.label}>Nama Lengkap</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="Nama Lengkap"
-                style={styles.input}
-              />
-            </div>
+            <>
+              <div style={styles.field}>
+                <label style={styles.label}>Nama Lengkap</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Masukkan nama lengkap"
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={styles.field}>
+                <label style={styles.label}>NIM</label>
+                <input
+                  type="text"
+                  name="nim"
+                  value={formData.nim}
+                  onChange={handleChange}
+                  placeholder="Masukkan NIM"
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={styles.grid}>
+                <div style={styles.field}>
+                  <label style={styles.label}>Prodi</label>
+                  <input
+                    type="text"
+                    name="prodi"
+                    value={formData.prodi}
+                    onChange={handleChange}
+                    placeholder="Contoh: Sistem Informasi"
+                    style={styles.input}
+                  />
+                </div>
+
+                <div style={styles.field}>
+                  <label style={styles.label}>Jurusan</label>
+                  <input
+                    type="text"
+                    name="jurusan"
+                    value={formData.jurusan}
+                    onChange={handleChange}
+                    placeholder="Contoh: TI"
+                    style={styles.input}
+                  />
+                </div>
+              </div>
+
+              <div style={styles.grid}>
+                <div style={styles.field}>
+                  <label style={styles.label}>Fakultas</label>
+                  <input
+                    type="text"
+                    name="fakultas"
+                    value={formData.fakultas}
+                    onChange={handleChange}
+                    placeholder="Masukkan fakultas"
+                    style={styles.input}
+                  />
+                </div>
+
+                <div style={styles.field}>
+                  <label style={styles.label}>Angkatan</label>
+                  <input
+                    type="number"
+                    name="angkatan"
+                    value={formData.angkatan}
+                    onChange={handleChange}
+                    placeholder="2022"
+                    style={styles.input}
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           <div style={styles.field}>
@@ -98,7 +217,7 @@ function LoginPage({ onLogin, onRegister }) {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="email@student.itk.ac.id"
+              placeholder="email@student.ac.id"
               required
               style={styles.input}
             />
@@ -118,12 +237,16 @@ function LoginPage({ onLogin, onRegister }) {
           </div>
 
           <button type="submit" style={styles.btnSubmit} disabled={loading}>
-            {loading ? "⏳ Loading..." : isRegister ? "📝 Register" : "🔐 Login"}
+            {loading
+              ? "Memproses..."
+              : isRegister
+              ? "Daftar Akun"
+              : "Masuk"}
           </button>
         </form>
       </div>
     </div>
-  )
+  );
 }
 
 const styles = {
@@ -132,49 +255,66 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1F4E79",
+    background:
+      "linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #334155 100%)",
     padding: "2rem",
     fontFamily: "'Segoe UI', Arial, sans-serif",
+    position: "relative",
+    overflow: "hidden",
+  },
+  overlay: {
+    position: "absolute",
+    inset: 0,
+    background:
+      "radial-gradient(circle at top right, rgba(59,130,246,0.15), transparent 30%), radial-gradient(circle at bottom left, rgba(16,185,129,0.12), transparent 25%)",
   },
   card: {
-    backgroundColor: "white",
-    padding: "2.5rem",
-    borderRadius: "16px",
+    position: "relative",
+    zIndex: 1,
+    backgroundColor: "rgba(255,255,255,0.97)",
+    padding: "2rem",
+    borderRadius: "20px",
     width: "100%",
-    maxWidth: "420px",
-    boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+    maxWidth: "620px",
+    boxShadow: "0 20px 50px rgba(0,0,0,0.22)",
+    backdropFilter: "blur(6px)",
+  },
+  headerBox: {
+    textAlign: "center",
+    marginBottom: "1.5rem",
   },
   title: {
-    textAlign: "center",
-    margin: "0 0 0.25rem 0",
-    color: "#1F4E79",
-    fontSize: "2rem",
+    margin: "0 0 0.35rem 0",
+    color: "#0f172a",
+    fontSize: "2.2rem",
+    fontWeight: "800",
+    letterSpacing: "0.5px",
   },
   subtitle: {
-    textAlign: "center",
-    color: "#888",
-    margin: "0 0 1.5rem 0",
-    fontSize: "0.9rem",
+    color: "#64748b",
+    margin: 0,
+    fontSize: "0.95rem",
   },
   tabs: {
     display: "flex",
     marginBottom: "1.5rem",
-    borderRadius: "8px",
+    borderRadius: "12px",
     overflow: "hidden",
-    border: "2px solid #e0e0e0",
+    border: "1px solid #dbe2ea",
+    backgroundColor: "#f8fafc",
   },
   tab: {
     flex: 1,
-    padding: "0.7rem",
+    padding: "0.85rem",
     border: "none",
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "transparent",
     cursor: "pointer",
     fontSize: "0.95rem",
-    fontWeight: "bold",
-    color: "#888",
+    fontWeight: "700",
+    color: "#64748b",
   },
   tabActive: {
-    backgroundColor: "#1F4E79",
+    backgroundColor: "#0f172a",
     color: "white",
   },
   form: {
@@ -182,43 +322,49 @@ const styles = {
     flexDirection: "column",
     gap: "1rem",
   },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "1rem",
+  },
   field: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.3rem",
+    gap: "0.4rem",
   },
   label: {
-    fontSize: "0.85rem",
-    fontWeight: "bold",
-    color: "#555",
+    fontSize: "0.88rem",
+    fontWeight: "700",
+    color: "#334155",
   },
   input: {
-    padding: "0.75rem 1rem",
-    border: "2px solid #ddd",
-    borderRadius: "8px",
-    fontSize: "1rem",
+    padding: "0.85rem 1rem",
+    border: "1px solid #cbd5e1",
+    borderRadius: "10px",
+    fontSize: "0.97rem",
     outline: "none",
+    backgroundColor: "#fff",
   },
   btnSubmit: {
-    padding: "0.8rem",
-    backgroundColor: "#548235",
+    padding: "0.95rem",
+    backgroundColor: "#2563eb",
     color: "white",
     border: "none",
-    borderRadius: "8px",
+    borderRadius: "10px",
     cursor: "pointer",
     fontSize: "1rem",
-    fontWeight: "bold",
+    fontWeight: "700",
     marginTop: "0.5rem",
   },
   error: {
-    backgroundColor: "#FBE5D6",
-    color: "#C00000",
-    padding: "0.6rem 1rem",
-    borderRadius: "6px",
-    marginBottom: "0.5rem",
-    fontSize: "0.9rem",
+    backgroundColor: "#fee2e2",
+    color: "#991b1b",
+    padding: "0.75rem 1rem",
+    borderRadius: "10px",
+    marginBottom: "0.75rem",
+    fontSize: "0.92rem",
     textAlign: "center",
   },
-}
+};
 
-export default LoginPage
+export default LoginPage;
