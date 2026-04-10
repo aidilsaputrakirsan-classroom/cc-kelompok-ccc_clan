@@ -196,9 +196,9 @@ def team():
     return {
         "team": "CCC_Clan",
         "members": [
-            {"name": "Dzakwan Fatih Fadhilah", "nim": "10231034"},
-            {"name": "Risky Nur Fatimah Bahar", "nim": "10231084"},
-            {"name": "Muhammad Dani", "nim": "10231062"},
-            {"name": "Ade Ayu Kholifah Putri", "nim": "10231004"},
+            {"name": "Dzakwan Fatih Fadhilah", "nim": "10231034", "role": "Lead Backend"},
+            {"name": "Risky Nur Fatimah Bahar", "nim": "10231084", "role": "Lead Frontend"},
+            {"name": "Muhammad Dani", "nim": "10231062", "role": "Lead Devops"},
+            {"name": "Ade Ayu Kholifah Putri", "nim": "10231004", "role": "Lead QA & Docs"}
         ],
     }
