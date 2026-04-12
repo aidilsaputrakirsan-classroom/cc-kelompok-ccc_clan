@@ -1,6 +1,9 @@
 # ☁️ Cloud App - SIPILIH (Sistem Informasi Pemilihan Digital)
 
-Deskripsi : SIPILIH (Sistem Informasi Pemilihan Digital) merupakan platform berbasis web yang dirancang untuk mendukung proses pemilihan elektronik (_e-voting_) di lingkungan kampus, seperti pemilihan Ketua BEM, Himpunan Mahasiswa, maupun organisasi kemahasiswaan lainnya. Sistem ini dirancang untuk menyediakan proses pemungutan suara yang aman, transparan, dan terstruktur melalui autentikasi akun mahasiswa. Selain itu, SIPILIH juga dilengkapi dengan fitur manajemen kandidat, pengaturan periode pemilihan, serta dashboard hasil perolehan suara yang ditampilkan secara real-time dalam bentuk grafik persentase. Dengan demikian, proses demokrasi di lingkungan kampus dapat berlangsung dengan lebih efisien, terdokumentasi secara digital, dan terintegrasi dalam satu sistem yang terpusat.
+Deskripsi : 
+SIPILIH (Sistem Informasi Pemilihan Digital) merupakan platform berbasis web yang dirancang untuk mendukung proses pemilihan elektronik (_e-voting_) di lingkungan kampus, seperti pemilihan Ketua BEM, Himpunan Mahasiswa, maupun organisasi kemahasiswaan lainnya. Sistem ini bertujuan untuk menghadirkan proses pemungutan suara yang aman, transparan, dan terstruktur melalui mekanisme autentikasi akun mahasiswa. SIPILIH menyediakan berbagai fitur Utama seperti manajemen kandidat, pengaturan periode pemilihan, serta monitoring partisipasi pemilih. Selainn itu, sistem ini juga dilengkapi dengan dashboard hasil perolehan suara secara real-time yang disajikan dalam bentuk grafik persentase, sehingga memudahkan dalam proses evaluasi dan pengambilan keputusan. 
+
+Dalam implementasinya, SIPILIH membagi hak akses pengguna ke dalam beberapa peran, yaitu Super Admin, Admin, dan Peserta, yang dimana masing-masing peran tersebut memiliki fungsi dan tanggung jawab berbeda untuk menjaga kelancaran proses pemilihan. Dengan adanya SIPILIH, proses demokrasi di lingkungan kampus dapat lebih terdokumentasi secara digital, terintegrasi dalam satu sistem terpusat, serta meminimalkan potensi kecurangan dalam pemungutan suara.
 
 ## 👥 Tim
 
@@ -26,13 +29,16 @@ Deskripsi : SIPILIH (Sistem Informasi Pemilihan Digital) merupakan platform berb
 
 ```
 [React Frontend] <--HTTP--> [FastAPI Backend] <--SQL--> [PostgreSQL Database]
+      |                            |
+  Vite + JSX               REST API Endpoints
+  (Port 5173)               (Port 8000)
 ```
 
 ## 🚀 Getting Started
 
 ### Prasyarat
 - Python 3.10+
-- Node.js 19+
+- Node.js 18+
 - Git
 
 ### Backend
@@ -49,6 +55,11 @@ npm install
 npm run dev
 ```
 
+### Access
+- API : http://localhost:8000
+- API Docs : http://localhost:8000/docs
+- Frontend : http://localhost:5173
+
 ## 📅 Roadmap
 
 | Minggu | Target | Status |
@@ -56,12 +67,13 @@ npm run dev
 | 1 | Setup & Hello World | ✅ |
 | 2 | REST API + Database | ✅ |
 | 3 | React Frontend | ✅ |
-| 4 | Full-Stack Integration | ⬜ |
-| 5-7 | Docker & Compose | ⬜ |
+| 4 | Full-Stack Integration | ✅ |
+| 5-7 | Docker & Compose | ✅ |
 | 8 | UTS Demo | ⬜ |
 | 9-11 | CI/CD Pipeline | ⬜ |
 | 12-14 | Microservices | ⬜ |
 | 15-16 | Final & UAS | ⬜ |
+
 
 ## 📁 Project Structure
 
