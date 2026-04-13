@@ -621,3 +621,70 @@ Masalah:
 * Error: `401 Unauthorized`
 * Penyebab: Token tidak pernah dikirim
 * Root cause: Swagger auth gagal
+
+## Docker Setup
+
+Pastikan Docker sudah terinstall di sistem:
+```
+docker --version  
+docker compose version  
+```
+Lakukan pengujian awal Docker:
+```
+docker run hello-world  
+```
+Jika berhasil, akan muncul pesan: 
+```
+"Hello from Docker!"
+```
+Login ke Docker Hub:
+```
+docker login  
+```
+
+## Build Image
+
+Masuk ke folder backend dan build Docker image:
+```
+cd backend  
+docker build -t cloudapp-backend:v1 .  
+```
+Verifikasi bahwa image berhasil dibuat:
+```
+docker images  
+```
+Pastikan terdapat image dengan nama 
+```
+`cloudapp-backend:v1`.
+```
+
+## Run Container
+
+Jalankan container menggunakan perintah berikut:
+```
+docker run -p 8000:8000 --env-file .env cloudapp-backend:v1  
+```
+Jika terjadi error koneksi database, periksa konfigurasi `DATABASE_URL` pada file `.env`:
+
+- Untuk Windows / Mac:
+```
+  host.docker.internal  
+```
+- Untuk Linux:  
+```
+  172.17.0.1  
+```
+
+## API Testing
+
+Setelah container berjalan, buka browser dan akses:
+```
+http://localhost:8000/docs  
+```
+Lakukan pengujian endpoint berikut:
+
+- GET /health → memastikan service berjalan dengan baik  
+- POST /auth/register → membuat user baru  
+- POST /auth/login → autentikasi user  
+
+Jika semua endpoint berjalan dengan baik, maka backend berhasil dijalankan menggunakan Docker.
