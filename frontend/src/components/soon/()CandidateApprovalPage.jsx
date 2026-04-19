@@ -3,7 +3,7 @@ import {
   getAdminCandidates,
   approveCandidate,
   rejectCandidate,
-} from "../services/api";
+} from "../../services/api";
 
 function CandidateApprovalPage() {
   const [candidates, setCandidates] = useState([]);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createCandidate } from "../services/api";
+import { createCandidate } from "../../services/api";
 
 function RegisterCandidatePage() {
   const [form, setForm] = useState({

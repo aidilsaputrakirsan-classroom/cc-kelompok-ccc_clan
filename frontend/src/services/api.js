@@ -1,12 +1,9 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ==================== TOKEN MANAGEMENT ====================
-
 const TOKEN_KEY = "token";
 
 export function setToken(token) {
   localStorage.setItem(TOKEN_KEY, token);
-  console.log("🔐 Token set:", token);
 }
 
 export function getToken() {
@@ -15,7 +12,7 @@ export function getToken() {
 
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
-  console.log("🗑️ Token cleared");
+  localStorage.removeItem("user");
 }
 
 function authHeaders() {
@@ -29,11 +26,8 @@ function authHeaders() {
   return headers;
 }
 
-// ==================== HELPER RESPONSE ====================
-
 async function handleResponse(response) {
   if (response.status === 401) {
-    console.error("❌ 401 Unauthorized - clearing token");
     clearToken();
     throw new Error("UNAUTHORIZED");
   }
@@ -61,8 +55,7 @@ async function handleResponse(response) {
   return response.json();
 }
 
-// ==================== AUTH API ====================
-
+// AUTH
 export async function register(userData) {
   const response = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
@@ -87,6 +80,8 @@ export async function login(email, password) {
   }
 
   setToken(data.access_token);
+  localStorage.setItem("user", JSON.stringify(data.user));
+
   return data;
 }
 
@@ -105,35 +100,15 @@ export async function logout() {
   clearToken();
 }
 
-// ==================== CANDIDATE API ====================
-
-// User daftar jadi kandidat
-export async function createCandidate(candidateData) {
-  const response = await fetch(`${API_URL}/candidates`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders(),
-    },
-    body: JSON.stringify(candidateData),
-  });
-
-  return handleResponse(response);
-}
-
-// Public / user lihat kandidat
+// CANDIDATES
 export async function getPublicCandidates() {
   const response = await fetch(`${API_URL}/candidates`, {
     method: "GET",
-    headers: {
-      ...authHeaders(),
-    },
   });
 
   return handleResponse(response);
 }
 
-// Admin lihat semua kandidat
 export async function getAdminCandidates() {
   const response = await fetch(`${API_URL}/admin/candidates`, {
     method: "GET",
@@ -145,10 +120,35 @@ export async function getAdminCandidates() {
   return handleResponse(response);
 }
 
-// Admin approve kandidat
-export async function approveCandidate(id) {
-  const response = await fetch(`${API_URL}/admin/candidates/${id}/approve`, {
+export async function createCandidate(candidateData) {
+  const response = await fetch(`${API_URL}/admin/candidates`, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(candidateData),
+  });
+
+  return handleResponse(response);
+}
+
+export async function updateCandidate(id, candidateData) {
+  const response = await fetch(`${API_URL}/admin/candidates/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(candidateData),
+  });
+
+  return handleResponse(response);
+}
+
+export async function deleteCandidate(id) {
+  const response = await fetch(`${API_URL}/admin/candidates/${id}`, {
+    method: "DELETE",
     headers: {
       ...authHeaders(),
     },
@@ -156,20 +156,6 @@ export async function approveCandidate(id) {
 
   return handleResponse(response);
 }
-
-// Admin reject kandidat
-export async function rejectCandidate(id) {
-  const response = await fetch(`${API_URL}/admin/candidates/${id}/reject`, {
-    method: "POST",
-    headers: {
-      ...authHeaders(),
-    },
-  });
-
-  return handleResponse(response);
-}
-
-// ==================== HEALTH CHECK ====================
 
 export async function checkHealth() {
   try {
@@ -177,12 +163,9 @@ export async function checkHealth() {
 
     if (!response.ok) return false;
 
-    const data = await response.json();
-    console.log("💚 Health check:", data);
-
+    await response.json();
     return true;
   } catch {
-    console.error("❌ Health check failed");
     return false;
   }
 }

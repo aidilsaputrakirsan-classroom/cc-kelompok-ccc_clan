@@ -1,213 +1,277 @@
-import { useEffect, useState } from "react";
-import { getPublicCandidates } from "../services/api";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import AdminNavbar from "./AdminNavbar";
+import Toast from "./Toast";
+import ConfirmModal from "./ConfirmModal";
+import { getAdminCandidates, deleteCandidate } from "../services/api";
 
 function CandidatesPage() {
+  const navigate = useNavigate();
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [pageMessage, setPageMessage] = useState("");
+  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [toast, setToast] = useState({
+    show: false,
+    type: "success",
+    message: "",
+  });
+
+  const [deleteModal, setDeleteModal] = useState({
+    show: false,
+    candidateId: null,
+  });
+
+  const showToast = (type, message) => {
+    setToast({
+      show: true,
+      type,
+      message,
+    });
+
+    setTimeout(() => {
+      setToast({
+        show: false,
+        type: "success",
+        message: "",
+      });
+    }, 2500);
+  };
+
+  const closeToast = () => {
+    setToast({
+      show: false,
+      type: "success",
+      message: "",
+    });
+  };
+
+  const fetchCandidates = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const data = await getAdminCandidates();
+      setCandidates(data || []);
+    } catch (err) {
+      if (err.message === "UNAUTHORIZED") {
+        setError("Sesi berakhir. Silakan login ulang.");
+        navigate("/login");
+      } else {
+        setError(err.message || "Gagal mengambil data kandidat");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
 
   useEffect(() => {
-    const fetchCandidates = async () => {
-      try {
-        const data = await getPublicCandidates();
-        setCandidates(data);
-      } catch (err) {
-        console.error("Gagal ambil kandidat:", err);
-        setPageMessage(
-          "Daftar kandidat belum tersedia. Backend belum menyediakan endpoint publik kandidat."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCandidates();
-  }, []);
+  }, [fetchCandidates]);
 
-  if (loading) {
-    return (
-      <div style={styles.stateBox}>
-        <p style={styles.stateText}>Loading kandidat...</p>
-      </div>
-    );
-  }
+  const filteredCandidates = useMemo(() => {
+    const keyword = searchTerm.toLowerCase().trim();
+
+    if (!keyword) return candidates;
+
+    return candidates.filter((candidate) => {
+      return (
+        candidate.nama?.toLowerCase().includes(keyword) ||
+        candidate.nim?.toLowerCase().includes(keyword) ||
+        candidate.email?.toLowerCase().includes(keyword) ||
+        candidate.posisi?.toLowerCase().includes(keyword) ||
+        candidate.fakultas?.toLowerCase().includes(keyword)
+      );
+    });
+  }, [candidates, searchTerm]);
+
+  const openDeleteModal = (id) => {
+    setDeleteModal({
+      show: true,
+      candidateId: id,
+    });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({
+      show: false,
+      candidateId: null,
+    });
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteCandidate(deleteModal.candidateId);
+      closeDeleteModal();
+      showToast("success", "Kandidat berhasil dihapus.");
+      fetchCandidates();
+    } catch (err) {
+      closeDeleteModal();
+      showToast("error", err.message || "Gagal menghapus kandidat.");
+    }
+  };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.headerSection}>
-        <h1 style={styles.title}>Daftar Kandidat</h1>
-        <p style={styles.subtitle}>
-          Lihat informasi kandidat yang terdaftar di SIPILIH.
-        </p>
-      </div>
+    <>
+      <AdminNavbar />
 
-      {pageMessage ? (
-        <div style={styles.stateBox}>
-          <p style={styles.stateText}>{pageMessage}</p>
+      <Toast
+        show={toast.show}
+        type={toast.type}
+        message={toast.message}
+        onClose={closeToast}
+      />
+
+      <ConfirmModal
+        show={deleteModal.show}
+        title="Hapus Kandidat"
+        message="Apakah kamu yakin ingin menghapus kandidat ini? Tindakan ini tidak bisa dibatalkan."
+        confirmText="Hapus"
+        cancelText="Batal"
+        onConfirm={handleDelete}
+        onCancel={closeDeleteModal}
+      />
+
+      <div className="candidates-page">
+        <div className="candidate-hero">
+          <div>
+            <span className="candidate-badge">Manajemen Kandidat</span>
+            <h1>Daftar Kandidat</h1>
+            <p>
+              Kelola seluruh data kandidat SIPILIH dengan tampilan yang lebih
+              rapi, terstruktur, dan mudah diakses.
+            </p>
+          </div>
+
+          <Link
+            to="/candidates/create"
+            className="btn btn-primary candidate-add-btn"
+          >
+            + Tambah Kandidat
+          </Link>
         </div>
-      ) : candidates.length === 0 ? (
-        <div style={styles.stateBox}>
-          <p style={styles.stateText}>Belum ada kandidat yang tersedia.</p>
-        </div>
-      ) : (
-        <div style={styles.grid}>
-          {candidates.map((candidate) => (
-            <div key={candidate.id} style={styles.card}>
-              <div style={styles.cardTop}>
-                <div>
-                  <p style={styles.badge}>Kandidat #{candidate.id}</p>
-                  <h2 style={styles.cardTitle}>{candidate.posisi}</h2>
-                </div>
 
-                <span style={getStatusStyle(candidate.status)}>
-                  {candidate.status}
-                </span>
-              </div>
-
-              <div style={styles.section}>
-                <h3 style={styles.sectionTitle}>Visi</h3>
-                <p style={styles.text}>{candidate.visi}</p>
-              </div>
-
-              <div style={styles.section}>
-                <h3 style={styles.sectionTitle}>Misi</h3>
-                <p style={styles.text}>{candidate.misi}</p>
-              </div>
-
-              <div style={styles.section}>
-                <h3 style={styles.sectionTitle}>Inovasi</h3>
-                <p style={styles.text}>{candidate.inovasi}</p>
+        <div className="candidate-table-card">
+          <div className="candidate-table-top">
+            <div className="candidate-table-header">
+              <div>
+                <h3>Data Kandidat</h3>
+                <p>
+                  {loading
+                    ? "Sedang memuat data..."
+                    : `${filteredCandidates.length} kandidat ditemukan`}
+                </p>
               </div>
             </div>
-          ))}
+
+            <div className="candidate-search-box">
+              <input
+                type="text"
+                placeholder="Cari nama, NIM, email, posisi..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="candidate-empty-state">
+              <h4>Loading data kandidat...</h4>
+              <p>Mohon tunggu sebentar, data sedang diambil dari sistem.</p>
+            </div>
+          ) : error ? (
+            <div className="candidate-error-box">
+              <strong>Terjadi kesalahan</strong>
+              <p>{error}</p>
+            </div>
+          ) : candidates.length === 0 ? (
+            <div className="candidate-empty-state">
+              <h4>Belum ada data kandidat</h4>
+              <p>
+                Tambahkan kandidat pertama untuk mulai mengelola pemilihan pada
+                sistem SIPILIH.
+              </p>
+              <Link to="/candidates/create" className="btn btn-primary">
+                Tambah Kandidat
+              </Link>
+            </div>
+          ) : filteredCandidates.length === 0 ? (
+            <div className="candidate-empty-state">
+              <h4>Data tidak ditemukan</h4>
+              <p>
+                Tidak ada kandidat yang cocok dengan kata kunci pencarianmu.
+              </p>
+            </div>
+          ) : (
+            <div className="candidate-table-wrapper">
+              <table className="candidate-table">
+                <thead>
+                  <tr>
+                    <th>Nama</th>
+                    <th>NIM</th>
+                    <th>Email</th>
+                    <th>Posisi</th>
+                    <th>Fakultas</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCandidates.map((candidate) => (
+                    <tr key={candidate.id}>
+                      <td>
+                        <div className="candidate-name-cell">
+                          <div className="candidate-mini-avatar">
+                            {candidate.nama
+                              ? candidate.nama.charAt(0).toUpperCase()
+                              : "K"}
+                          </div>
+                          <div>
+                            <strong>{candidate.nama}</strong>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{candidate.nim}</td>
+                      <td className="candidate-email-cell">
+                        {candidate.email}
+                      </td>
+                      <td>{candidate.posisi}</td>
+                      <td>{candidate.fakultas}</td>
+                      <td>
+                        <div className="candidate-action-group">
+                          <Link
+                            to={`/candidates/${candidate.id}`}
+                            className="action-btn action-btn-detail"
+                          >
+                            Detail
+                          </Link>
+
+                          <Link
+                            to={`/candidates/${candidate.id}/edit`}
+                            className="action-btn action-btn-edit"
+                          >
+                            Edit
+                          </Link>
+
+                          <button
+                            type="button"
+                            className="action-btn action-btn-delete"
+                            onClick={() => openDeleteModal(candidate.id)}
+                          >
+                            Hapus
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }
-
-const styles = {
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-    width: "100%",
-  },
-  headerSection: {
-    backgroundColor: "#ffffff",
-    borderRadius: "14px",
-    padding: "22px",
-    boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
-  },
-  title: {
-    margin: 0,
-    color: "#0f172a",
-    fontSize: "1.8rem",
-  },
-  subtitle: {
-    marginTop: "8px",
-    marginBottom: 0,
-    color: "#64748b",
-    fontSize: "0.96rem",
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-    gap: "18px",
-  },
-  card: {
-    backgroundColor: "#ffffff",
-    borderRadius: "14px",
-    padding: "20px",
-    boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
-    display: "flex",
-    flexDirection: "column",
-    gap: "14px",
-  },
-  cardTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: "12px",
-  },
-  badge: {
-    margin: 0,
-    color: "#64748b",
-    fontSize: "0.82rem",
-    fontWeight: "600",
-  },
-  cardTitle: {
-    margin: "6px 0 0 0",
-    color: "#0f172a",
-    fontSize: "1.25rem",
-  },
-  section: {
-    borderTop: "1px solid #e2e8f0",
-    paddingTop: "12px",
-  },
-  sectionTitle: {
-    margin: "0 0 8px 0",
-    color: "#1e293b",
-    fontSize: "0.95rem",
-  },
-  text: {
-    margin: 0,
-    color: "#334155",
-    fontSize: "0.95rem",
-    lineHeight: "1.6",
-    whiteSpace: "pre-line",
-  },
-  stateBox: {
-    backgroundColor: "#ffffff",
-    borderRadius: "14px",
-    padding: "28px",
-    boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
-  },
-  stateText: {
-    margin: 0,
-    color: "#64748b",
-    fontSize: "1rem",
-    lineHeight: "1.6",
-  },
-};
-
-const getStatusStyle = (status) => {
-  if (status === "approved") {
-    return {
-      backgroundColor: "#dcfce7",
-      color: "#166534",
-      padding: "6px 10px",
-      borderRadius: "999px",
-      fontSize: "0.8rem",
-      fontWeight: "700",
-      textTransform: "capitalize",
-      whiteSpace: "nowrap",
-    };
-  }
-
-  if (status === "rejected") {
-    return {
-      backgroundColor: "#fee2e2",
-      color: "#991b1b",
-      padding: "6px 10px",
-      borderRadius: "999px",
-      fontSize: "0.8rem",
-      fontWeight: "700",
-      textTransform: "capitalize",
-      whiteSpace: "nowrap",
-    };
-  }
-
-  return {
-    backgroundColor: "#fef3c7",
-    color: "#92400e",
-    padding: "6px 10px",
-    borderRadius: "999px",
-    fontSize: "0.8rem",
-    fontWeight: "700",
-    textTransform: "capitalize",
-    whiteSpace: "nowrap",
-  };
-};
 
 export default CandidatesPage;

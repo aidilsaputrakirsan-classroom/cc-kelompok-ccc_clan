@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getPublicCandidates } from "../services/api";
+import { getPublicCandidates } from "../../services/api";
 
 function VotingPage() {
   const [candidates, setCandidates] = useState([]);
