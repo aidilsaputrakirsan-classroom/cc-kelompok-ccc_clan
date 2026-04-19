@@ -9,7 +9,7 @@ from models import Base, User
 from schemas import (
     ItemCreate, ItemUpdate, ItemResponse, ItemListResponse,
     UserCreate, UserResponse, LoginRequest, TokenResponse,
-    CandidateBase, CandidateCreate, CandidateUpdate
+    CandidateCreate, CandidateUpdate, CandidateResponse
 )
 from auth import create_access_token, get_current_user
 import crud
@@ -50,7 +50,6 @@ def health():
     return {"status": "ok"}
 
 # ================= AUTH =================
-
 @app.post("/auth/register", response_model=UserResponse)
 def register(user: UserCreate, db: Session = Depends(get_db)):
     new_user = crud.create_user(db, user)
@@ -86,7 +85,6 @@ def me(current_user: User = Depends(get_current_user)):
 
 
 # ================= ITEM =================
-
 @app.post("/items", response_model=ItemResponse)
 def create_item(
     item: ItemCreate,
@@ -144,15 +142,14 @@ def delete_item(
     return {"message": "Deleted"}
 
 
-# ================= CANDIDATE (PUBLIC) =================
-
-@app.get("/candidates")
+# ================= CANDIDATE PUBLIC =================
+@app.get("/candidates", response_model=list[CandidateResponse])
 def get_candidates(db: Session = Depends(get_db)):
     return crud.get_candidates(db)
 
-# ================= CANDIDATE ADMIN =================
 
-@app.post("/admin/candidates")
+# ================= CANDIDATE ADMIN =================
+@app.post("/admin/candidates", response_model=CandidateResponse)
 def create_candidate(
     data: CandidateCreate,
     db: Session = Depends(get_db),
@@ -161,7 +158,7 @@ def create_candidate(
     return crud.create_candidate(db, data)
 
 
-@app.put("/admin/candidates/{id}")
+@app.put("/admin/candidates/{id}", response_model=CandidateResponse)
 def update_candidate(
     id: int,
     data: CandidateUpdate,
@@ -186,7 +183,7 @@ def delete_candidate(
     return {"message": "Deleted"}
 
 
-@app.get("/admin/candidates")
+@app.get("/admin/candidates", response_model=list[CandidateResponse])
 def list_candidates(
     db: Session = Depends(get_db),
     user: User = Depends(require_role(["admin", "superadmin"]))
@@ -195,7 +192,6 @@ def list_candidates(
 
 
 # ================= TEAM =================
-
 @app.get("/team")
 def team():
     return {

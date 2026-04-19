@@ -1,11 +1,8 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean
 from sqlalchemy.sql import func
 from database import Base
 
-
-# ============================================================
-#  CLASS ITEM
-# ============================================================
+# ================= ITEM =================
 class Item(Base):
     __tablename__ = "items"
 
@@ -18,9 +15,7 @@ class Item(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
-# ============================================================
-# CLASS USER LOGIN
-# ============================================================
+# ================= USER =================
 class User(Base):
     __tablename__ = "users"
 
@@ -29,72 +24,51 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     name = Column(String(100), nullable=False)
 
-    # DATA MAHASISWA
     nim = Column(String(20), unique=True, nullable=False)
     prodi = Column(String(250), nullable=False)
     jurusan = Column(String(250), nullable=False)
     fakultas = Column(String(250), nullable=False)
     angkatan = Column(Integer, nullable=False)
 
-    # ROLE SYSTEM
-    role = Column(String(20), default="user")  # user / admin / superadmin
-
-    # STATUS AKUN
+    role = Column(String(20), default="user")
     is_active = Column(Boolean, default=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-# ============================================================
-# CLASS CANDIDATE - ADMIN INPUT
-# ============================================================
+# ================= CANDIDATE =================
 class Candidate(Base):
     __tablename__ = "candidates"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
 
-    # =========================
-    # DATA DIRI
-    # =========================
     nama = Column(String(100), nullable=False)
     nim = Column(String(20), nullable=False, index=True)
     email = Column(String(255), nullable=False, index=True)
-    prodi = Column(String(250), nullable=False, index=True)
-    jurusan = Column(String(250), nullable=False, index=True)
-    fakultas = Column(String(250), nullable=False, index=True)
+    prodi = Column(String(250), nullable=False)
+    jurusan = Column(String(250), nullable=False)
+    fakultas = Column(String(250), nullable=False)
 
-    # =========================
-    # DATA KAMPANYE
-    # =========================
-    posisi = Column(String(100), nullable=False, index=True)
+    posisi = Column(String(100), nullable=False)
     visi = Column(Text, nullable=False)
     misi = Column(Text, nullable=False)
     inovasi = Column(Text, nullable=False)
 
-    # =========================
-    # FILE UPLOAD
-    # SIMPAN PATH FILE
-    # =========================
+    # file path (opsional)
+    foto = Column(String(255))
+    ktp = Column(String(255))
+    ktm = Column(String(255))
 
-    # FILE PNG 
-    foto = Column(String(255), nullable=True)
-    ktp = Column(String(255), nullable=True)
-    ktm = Column(String(255), nullable=True)
+    cv_ats = Column(String(255))
+    transkrip = Column(String(255))
+    surat_kesehatan = Column(String(255))
+    surat_pernyataan = Column(String(255))
+    surat_aktif_kuliah = Column(String(255))
+    tsk = Column(String(255))
+    surat_mengikuti_kegiatan = Column(String(255))
+    dokumen_swot = Column(String(255))
 
-    # FILE PDF
-    cv_ats = Column(String(255), nullable=True)
-    transkrip = Column(String(255), nullable=True)
-    surat_kesehatan = Column(String(255), nullable=True)
-    surat_pernyataan = Column(String(255), nullable=True)
-    surat_aktif_kuliah = Column(String(255), nullable=True)
-    tsk = Column(String(255), nullable=True)
-    surat_mengikuti_kegiatan = Column(String(255), nullable=True)
-    dokumen_swot = Column(String(255), nullable=True)
-
-    # =========================
-    # STATUS
-    # =========================
-    status = Column(String(50), default="approved")  
+    status = Column(String(50), default="approved")
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

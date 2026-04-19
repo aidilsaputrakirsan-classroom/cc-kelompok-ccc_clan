@@ -3,9 +3,7 @@ from typing import Optional
 from datetime import datetime
 import re
 
-
-# ==================== ITEM SCHEMAS ====================
-
+# ==================== ITEM ====================
 class ItemBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
@@ -38,14 +36,12 @@ class ItemListResponse(BaseModel):
     items: list[ItemResponse]
 
 
-# ==================== USER SCHEMAS ====================
-
+# ==================== USER ====================
 class UserCreate(BaseModel):
     email: str
     name: str
     password: str = Field(..., min_length=8)
 
-    # DATA MAHASISWA
     nim: str
     prodi: str
     jurusan: str
@@ -55,7 +51,7 @@ class UserCreate(BaseModel):
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
-        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
         if not re.match(pattern, v):
             raise ValueError('Format email tidak valid')
         return v.lower()
@@ -104,12 +100,8 @@ class TokenResponse(BaseModel):
     user: UserResponse
 
 
-# ==================== CANDIDATE SCHEMAS ====================
-
+# ==================== CANDIDATE ====================
 class CandidateBase(BaseModel):
-    # =========================
-    # DATA DIRI
-    # =========================
     nama: str
     nim: str
     email: EmailStr
@@ -117,9 +109,6 @@ class CandidateBase(BaseModel):
     jurusan: str
     fakultas: str
 
-    # =========================
-    # DATA KAMPANYE
-    # =========================
     posisi: str
     visi: str
     misi: str

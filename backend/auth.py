@@ -14,113 +14,58 @@ from models import User
 
 load_dotenv()
 
-# Konfigurasi dari environment variables
-SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key-for-development")
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
-# Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# OAuth2 scheme — FastAPI akan mencari header "Authorization: Bearer <token>"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
-# ==================== PASSWORD ====================
-
-def hash_password(password: str) -> str:
-    """Hash password menggunakan bcrypt."""
+# ================= PASSWORD =================
+def hash_password(password: str):
     return pwd_context.hash(password)
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verifikasi password terhadap hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(plain, hashed):
+    return pwd_context.verify(plain, hashed)
 
 
-# ==================== JWT TOKEN ====================
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Buat JWT access token."""
+# ================= TOKEN =================
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.now(timezone.utc) + (
+        expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
     to_encode.update({"exp": expire})
-    token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    print(f" [DEBUG] Token created for user: {to_encode.get('sub')}")
-    print(f" [DEBUG] Token: {token[:50]}...")
-    return token
+
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def decode_token(token: str) -> dict:
-    """Decode dan verifikasi JWT token."""
+def decode_token(token: str):
     try:
-        print(f" [DEBUG] Token received: {token[:30]}...")
-        print(f" [DEBUG] SECRET_KEY being used: {SECRET_KEY[:30]}...")
-        print(f" [DEBUG] ALGORITHM: {ALGORITHM}")
-        
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print(f" [SUCCESS] Token decoded! User ID: {payload.get('sub')}")
-        return payload
-        
-    except JWTError as e:
-        print(f" [ERROR] JWT Decode Failed: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token tidak valid atau sudah expired",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-# ==================== DEPENDENCY ====================
-
-def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db),
-) -> User:
-    print(f" [DEBUG] get_current_user called with token: {token[:30]}...")
-    payload = decode_token(token)
-    user_id: int = int(payload.get("sub"))  # ← Konvert string ke int
-    
-    print(f" [DEBUG] Extracted user_id: {user_id}")
-    # ... rest of function
-
-    if user_id is None:
-        print(f" [ERROR] user_id is None!")
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token tidak valid",
         )
 
-    user = db.query(User).filter(User.id == user_id).first()
-    print(f" [DEBUG] User from DB: {user.email if user else 'NOT FOUND'}")
 
-    if user is None:
-        print(f" [ERROR] User not found in database!")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User tidak ditemukan",
-        )
+# ================= CURRENT USER =================
+def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+):
+    payload = decode_token(token)
+    user_id = int(payload.get("sub"))
+
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(401, "User tidak ditemukan")
 
     if not user.is_active:
-        print(f" [ERROR] User is not active!")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Akun tidak aktif",
-        )
+        raise HTTPException(403, "User tidak aktif")
 
-    print(f" [SUCCESS] User authenticated: {user.email}")
     return user
-
-def require_role(allowed_roles: list):
-    """
-    Dependency untuk membatasi akses berdasarkan role.
-    Contoh:
-    require_role(["admin", "superadmin"])
-    """
-    def role_checker(current_user: User = Depends(get_current_user)):
-        if current_user.role not in allowed_roles:
-            raise HTTPException(
-                status_code=403,
-                detail="Akses ditolak: role tidak memiliki izin"
-            )
-        return current_user
-    return role_checker

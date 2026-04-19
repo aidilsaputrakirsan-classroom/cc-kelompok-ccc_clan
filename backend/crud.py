@@ -1,12 +1,11 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from models import Item, User, Candidate
-from schemas import ItemCreate, ItemUpdate, UserCreate, CandidateCreate
+from schemas import ItemCreate, ItemUpdate, UserCreate, CandidateCreate, CandidateUpdate
 from auth import hash_password, verify_password
 
 
-# ==================== ITEM CRUD ====================
-
+# ================= ITEM =================
 def create_item(db: Session, item_data: ItemCreate) -> Item:
     db_item = Item(**item_data.model_dump())
     db.add(db_item)
@@ -15,7 +14,7 @@ def create_item(db: Session, item_data: ItemCreate) -> Item:
     return db_item
 
 
-def get_items(db: Session, skip: int = 0, limit: int = 20, search: str = None):
+def get_items(db: Session, skip=0, limit=20, search=None):
     query = db.query(Item)
 
     if search:
@@ -32,28 +31,25 @@ def get_items(db: Session, skip: int = 0, limit: int = 20, search: str = None):
     return {"total": total, "items": items}
 
 
-def get_item(db: Session, item_id: int) -> Item | None:
+def get_item(db: Session, item_id: int):
     return db.query(Item).filter(Item.id == item_id).first()
 
 
-def update_item(db: Session, item_id: int, item_data: ItemUpdate) -> Item | None:
+def update_item(db: Session, item_id: int, item_data: ItemUpdate):
     db_item = db.query(Item).filter(Item.id == item_id).first()
-
     if not db_item:
         return None
 
-    update_data = item_data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(db_item, field, value)
+    for key, value in item_data.model_dump(exclude_unset=True).items():
+        setattr(db_item, key, value)
 
     db.commit()
     db.refresh(db_item)
     return db_item
 
 
-def delete_item(db: Session, item_id: int) -> bool:
+def delete_item(db: Session, item_id: int):
     db_item = db.query(Item).filter(Item.id == item_id).first()
-
     if not db_item:
         return False
 
@@ -62,14 +58,12 @@ def delete_item(db: Session, item_id: int) -> bool:
     return True
 
 
-# ==================== USER CRUD ====================
-
-def create_user(db: Session, user_data: UserCreate) -> User:
-    existing = db.query(User).filter(User.email == user_data.email).first()
-    if existing:
+# ================= USER =================
+def create_user(db: Session, user_data: UserCreate):
+    if db.query(User).filter(User.email == user_data.email).first():
         return None
 
-    db_user = User(
+    user = User(
         email=user_data.email,
         name=user_data.name,
         nim=user_data.nim,
@@ -81,36 +75,21 @@ def create_user(db: Session, user_data: UserCreate) -> User:
         role="user"
     )
 
-    db.add(db_user)
+    db.add(user)
     db.commit()
-    db.refresh(db_user)
-    return db_user
+    db.refresh(user)
+    return user
 
 
-def create_admin(db: Session, user_data: UserCreate) -> User:
-    existing = db.query(User).filter(User.email == user_data.email).first()
-    if existing:
-        return None
-
-    db_user = User(
-        email=user_data.email,
-        name=user_data.name,
-        nim=user_data.nim,
-        prodi=user_data.prodi,
-        jurusan=user_data.jurusan,
-        fakultas=user_data.fakultas,
-        angkatan=user_data.angkatan,
-        hashed_password=hash_password(user_data.password),
-        role="admin"
-    )
-
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
+def create_admin(db: Session, user_data: UserCreate):
+    user = create_user(db, user_data)
+    if user:
+        user.role = "admin"
+        db.commit()
+    return user
 
 
-def authenticate_user(db: Session, email: str, password: str) -> User | None:
+def authenticate_user(db: Session, email: str, password: str):
     user = db.query(User).filter(User.email == email).first()
     if not user:
         return None
@@ -119,23 +98,9 @@ def authenticate_user(db: Session, email: str, password: str) -> User | None:
     return user
 
 
-# ==================== CANDIDATE ====================
-
-def create_candidate(db: Session, data: CandidateCreate) -> Candidate:
-    candidate = Candidate(
-        nama=data.nama,
-        nim=data.nim,
-        email=data.email,
-        prodi=data.prodi,
-        jurusan=data.jurusan,
-        fakultas=data.fakultas,
-        posisi=data.posisi,
-        visi=data.visi,
-        misi=data.misi,
-        inovasi=data.inovasi,
-        status="approved"
-    )
-
+# ================= CANDIDATE =================
+def create_candidate(db: Session, data: CandidateCreate):
+    candidate = Candidate(**data.model_dump(), status="approved")
     db.add(candidate)
     db.commit()
     db.refresh(candidate)
@@ -146,19 +111,12 @@ def get_candidates(db: Session):
     return db.query(Candidate).order_by(Candidate.created_at.desc()).all()
 
 
-def get_candidate_by_id(db: Session, candidate_id: int):
-    return db.query(Candidate).filter(Candidate.id == candidate_id).first()
-
-
-def update_candidate(db: Session, candidate_id: int, data: CandidateCreate):
+def update_candidate(db: Session, candidate_id: int, data: CandidateUpdate):
     candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
-
     if not candidate:
         return None
 
-    update_data = data.model_dump(exclude_unset=True)
-
-    for key, value in update_data.items():
+    for key, value in data.model_dump(exclude_unset=True).items():
         setattr(candidate, key, value)
 
     db.commit()
@@ -168,7 +126,6 @@ def update_candidate(db: Session, candidate_id: int, data: CandidateCreate):
 
 def delete_candidate(db: Session, candidate_id: int):
     candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
-
     if not candidate:
         return False
 
