@@ -9,7 +9,7 @@ from models import Base, User
 from schemas import (
     ItemCreate, ItemUpdate, ItemResponse, ItemListResponse,
     UserCreate, UserResponse, LoginRequest, TokenResponse,
-    CandidateCreate
+    CandidateBase, CandidateCreate, CandidateUpdate
 )
 from auth import create_access_token, get_current_user
 import crud
