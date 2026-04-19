@@ -4,11 +4,11 @@ services:
     container_name: postgres_db
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: cokki
-      POSTGRES_DB: cloudapp
+      POSTGRES_USER: bento
+      POSTGRES_PASSWORD: mariyani1
+      POSTGRES_DB: sipilih
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -23,6 +23,15 @@ services:
       - ./backend/.env
     volumes:
       - ./backend:/app
+
+  frontend:
+    image: sipilih-frontend:v1
+    container_name: sipilih_frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
