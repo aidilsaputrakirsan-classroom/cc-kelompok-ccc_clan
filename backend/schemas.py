@@ -141,7 +141,7 @@ class CandidateUpdate(BaseModel):
     posisi: Optional[str] = None
     visi: Optional[str] = None
     misi: Optional[str] = None
-    program_kerja: Optional[str] = None
+    inovasi: Optional[str] = None
 
 
 class CandidateResponse(CandidateBase):
