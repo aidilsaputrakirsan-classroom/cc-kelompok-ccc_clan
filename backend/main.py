@@ -144,18 +144,47 @@ def delete_item(
     return {"message": "Deleted"}
 
 
-# ================= CANDIDATE =================
+# ================= CANDIDATE (PUBLIC) =================
 
-@app.post("/candidates")
-def register_candidate(
+@app.get("/candidates")
+def get_candidates(db: Session = Depends(get_db)):
+    return crud.get_candidates(db)
+
+# ================= CANDIDATE ADMIN =================
+
+@app.post("/admin/candidates")
+def create_candidate(
     data: CandidateCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_role(["admin", "superadmin"]))
 ):
-    return crud.register_candidate(db, user.id, data)
+    return crud.create_candidate(db, data)
 
 
-# ================= ADMIN =================
+@app.put("/admin/candidates/{id}")
+def update_candidate(
+    id: int,
+    data: CandidateUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_role(["admin", "superadmin"]))
+):
+    result = crud.update_candidate(db, id, data)
+    if not result:
+        raise HTTPException(status_code=404, detail="Not found")
+    return result
+
+
+@app.delete("/admin/candidates/{id}")
+def delete_candidate(
+    id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_role(["admin", "superadmin"]))
+):
+    success = crud.delete_candidate(db, id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Not found")
+    return {"message": "Deleted"}
+
 
 @app.get("/admin/candidates")
 def list_candidates(
@@ -163,30 +192,6 @@ def list_candidates(
     user: User = Depends(require_role(["admin", "superadmin"]))
 ):
     return crud.get_candidates(db)
-
-
-@app.post("/admin/candidates/{id}/approve")
-def approve_candidate(
-    id: int,
-    db: Session = Depends(get_db),
-    user: User = Depends(require_role(["admin", "superadmin"]))
-):
-    result = crud.approve_candidate(db, id)
-    if not result:
-        raise HTTPException(status_code=404, detail="Not found")
-    return result
-
-
-@app.post("/admin/candidates/{id}/reject")
-def reject_candidate(
-    id: int,
-    db: Session = Depends(get_db),
-    user: User = Depends(require_role(["admin", "superadmin"]))
-):
-    result = crud.reject_candidate(db, id)
-    if not result:
-        raise HTTPException(status_code=404, detail="Not found")
-    return result
 
 
 # ================= TEAM =================

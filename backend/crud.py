@@ -121,14 +121,19 @@ def authenticate_user(db: Session, email: str, password: str) -> User | None:
 
 # ==================== CANDIDATE ====================
 
-def register_candidate(db: Session, user_id: int, data: CandidateCreate):
+def create_candidate(db: Session, data: CandidateCreate) -> Candidate:
     candidate = Candidate(
-        user_id=user_id,
+        nama=data.nama,
+        nim=data.nim,
+        email=data.email,
+        prodi=data.prodi,
+        jurusan=data.jurusan,
+        fakultas=data.fakultas,
         posisi=data.posisi,
         visi=data.visi,
         misi=data.misi,
         inovasi=data.inovasi,
-        status="pending"
+        status="approved"
     )
 
     db.add(candidate)
@@ -138,28 +143,35 @@ def register_candidate(db: Session, user_id: int, data: CandidateCreate):
 
 
 def get_candidates(db: Session):
-    return db.query(Candidate).all()
+    return db.query(Candidate).order_by(Candidate.created_at.desc()).all()
 
 
-def approve_candidate(db: Session, candidate_id: int):
+def get_candidate_by_id(db: Session, candidate_id: int):
+    return db.query(Candidate).filter(Candidate.id == candidate_id).first()
+
+
+def update_candidate(db: Session, candidate_id: int, data: CandidateCreate):
     candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
 
     if not candidate:
         return None
 
-    candidate.status = "approved"
+    update_data = data.model_dump(exclude_unset=True)
+
+    for key, value in update_data.items():
+        setattr(candidate, key, value)
+
     db.commit()
     db.refresh(candidate)
     return candidate
 
 
-def reject_candidate(db: Session, candidate_id: int):
+def delete_candidate(db: Session, candidate_id: int):
     candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
 
     if not candidate:
-        return None
+        return False
 
-    candidate.status = "rejected"
+    db.delete(candidate)
     db.commit()
-    db.refresh(candidate)
-    return candidate
+    return True

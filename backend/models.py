@@ -3,8 +3,10 @@ from sqlalchemy.sql import func
 from database import Base
 
 
+# ============================================================
+#  CLASS ITEM
+# ============================================================
 class Item(Base):
-    """Model untuk tabel 'items'."""
     __tablename__ = "items"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -16,8 +18,10 @@ class Item(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
+# ============================================================
+# CLASS USER LOGIN
+# ============================================================
 class User(Base):
-    """Model untuk tabel 'users'."""
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -26,7 +30,7 @@ class User(Base):
     name = Column(String(100), nullable=False)
 
     # DATA MAHASISWA
-    nim = Column(String(20), unique=True, nullable=False)  # ⚠️ ubah ke string (lebih aman)
+    nim = Column(String(20), unique=True, nullable=False)
     prodi = Column(String(250), nullable=False)
     jurusan = Column(String(250), nullable=False)
     fakultas = Column(String(250), nullable=False)
@@ -41,20 +45,56 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+# ============================================================
+# CLASS CANDIDATE - ADMIN INPUT
+# ============================================================
 class Candidate(Base):
-    """Model untuk tabel 'candidates'."""
     __tablename__ = "candidates"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
 
-    # RELASI KE USER
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # =========================
+    # DATA DIRI
+    # =========================
+    nama = Column(String(100), nullable=False)
+    nim = Column(String(20), nullable=False, index=True)
+    email = Column(String(255), nullable=False, index=True)
+    prodi = Column(String(250), nullable=False, index=True)
+    jurusan = Column(String(250), nullable=False, index=True)
+    fakultas = Column(String(250), nullable=False, index=True)
 
-    posisi = Column(String(100), nullable=False)
+    # =========================
+    # DATA KAMPANYE
+    # =========================
+    posisi = Column(String(100), nullable=False, index=True)
     visi = Column(Text, nullable=False)
     misi = Column(Text, nullable=False)
     inovasi = Column(Text, nullable=False)
 
-    status = Column(String(50), default="pending")  # pending / approved / rejected
+    # =========================
+    # FILE UPLOAD
+    # SIMPAN PATH FILE
+    # =========================
+
+    # FILE PNG 
+    foto = Column(String(255), nullable=True)
+    ktp = Column(String(255), nullable=True)
+    ktm = Column(String(255), nullable=True)
+
+    # FILE PDF
+    cv_ats = Column(String(255), nullable=True)
+    transkrip = Column(String(255), nullable=True)
+    surat_kesehatan = Column(String(255), nullable=True)
+    surat_pernyataan = Column(String(255), nullable=True)
+    surat_aktif_kuliah = Column(String(255), nullable=True)
+    tsk = Column(String(255), nullable=True)
+    surat_mengikuti_kegiatan = Column(String(255), nullable=True)
+    dokumen_swot = Column(String(255), nullable=True)
+
+    # =========================
+    # STATUS
+    # =========================
+    status = Column(String(50), default="approved")  
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

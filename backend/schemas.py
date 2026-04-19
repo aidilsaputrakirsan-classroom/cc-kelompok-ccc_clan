@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, EmailStr
 from typing import Optional
 from datetime import datetime
 import re
@@ -106,20 +106,46 @@ class TokenResponse(BaseModel):
 
 # ==================== CANDIDATE SCHEMAS ====================
 
-class CandidateCreate(BaseModel):
+class CandidateBase(BaseModel):
+    # =========================
+    # DATA DIRI
+    # =========================
+    nama: str
+    nim: str
+    email: EmailStr
+    prodi: str
+    jurusan: str
+    fakultas: str
+
+    # =========================
+    # DATA KAMPANYE
+    # =========================
     posisi: str
     visi: str
     misi: str
     inovasi: str
 
 
-class CandidateResponse(BaseModel):
+class CandidateCreate(CandidateBase):
+    pass
+
+
+class CandidateUpdate(BaseModel):
+    nama: Optional[str] = None
+    nim: Optional[str] = None
+    email: Optional[EmailStr] = None
+    prodi: Optional[str] = None
+    jurusan: Optional[str] = None
+    fakultas: Optional[str] = None
+
+    posisi: Optional[str] = None
+    visi: Optional[str] = None
+    misi: Optional[str] = None
+    program_kerja: Optional[str] = None
+
+
+class CandidateResponse(CandidateBase):
     id: int
-    user_id: int
-    posisi: str
-    visi: str
-    misi: str
-    inovasi: str
     status: str
     created_at: datetime
 
