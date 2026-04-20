@@ -130,39 +130,20 @@ cc-kelompok-ccc_clan/
 ```
 
 ## API Documentation
+
 Base URL saat development
-```
+
 http://localhost:8000
-```
 
-### 1. Health Check
-Digunakan untuk memastikan API berjalan normal.
 
-Method
-```
-GET
-```
+### AUTHENTICATION
 
-Endpoint
-```
-/health
-```
+Sistem menggunakan JWT Authentication (Bearer Token).
 
-Request Body
-```
-Tidak ada 
-```
+Token didapatkan dari login dan wajib digunakan untuk endpoint yang dilindungi.
 
-Response Example
-```
-{
-  "status": "healthy",
-  "version": "0.2.0"
-}
-```
 
-### 2. Create Item
-Membuat item baru di dalam database inventory.
+#### 1. Register User
 
 Method
 ```
@@ -171,19 +152,97 @@ POST
 
 Endpoint
 ```
-/items
+/auth/register
 ```
 
 Request Body
- ```
- {
+```json
+{
+  "email": "user@example.com",
+  "password": "123456"
+}
+```
+
+Response Example
+```
+{
+  "id": 1,
+  "email": "user@example.com",
+  "role": "user"
+}
+```
+
+#### 2. Login User
+
+Method
+```
+POST
+```
+Endpoint
+```
+/auth/login
+```
+Request Body
+```
+{
+  "email": "user@example.com",
+  "password": "123456"
+}
+```
+Response Example
+```
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6...",
+  "token_type": "bearer",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "role": "user"
+  }
+}
+```
+#### 3. Get Current User (Protected)
+
+Method
+```
+GET
+```
+Endpoint
+```
+/auth/me
+```
+Headers
+```
+Authorization: Bearer <access_token>
+```
+Response Example
+```
+{
+  "id": 1,
+  "email": "user@example.com",
+  "role": "user"
+}
+```
+
+#### 4. Create Item
+
+Method
+```
+POST
+```
+Endpoint
+```
+/items
+```
+Request Body
+```
+{
   "name": "Laptop",
   "price": 15000000,
   "description": "Laptop gaming",
   "quantity": 2
 }
 ```
-
 Response Example
 ```
 {
@@ -195,19 +254,16 @@ Response Example
 }
 ```
 
-### 3. Get Items
-Mengambil semua item dari database dengan menggunakan fitur pagination dan search.
+#### 5. Get Items (Pagination + Search)
 
 Method
 ```
 GET
 ```
-
 Endpoint
 ```
 /items
 ```
-
 Query Parameters
 | Parameter | Tipe    | Deskripsi                                 |
 | --------- | ------- | ----------------------------------------- |
@@ -215,11 +271,11 @@ Query Parameters
 | limit     | integer | jumlah item per halaman                   |
 | search    | string  | pencarian berdasarkan nama atau deskripsi |
 
+
 Example Request
 ```
-/items?skip=0&limit=20
+/items?skip=0&limit=20&search=laptop
 ```
-
 Response Example
 ```
 {
@@ -231,73 +287,24 @@ Response Example
       "price": 15000000,
       "description": "Laptop gaming",
       "quantity": 2
-    },
-    {
-      "id": 2,
-      "name": "Mouse",
-      "price": 100000,
-      "description": "Mouse wireless",
-      "quantity": 5
     }
   ]
 }
 ```
-
-### 3. Item Statistics
-Menampilkan statistik inventory. yang dimana statistik yang ditampilkan yaitu :
-- total jumlah item
-- total nilai inventory
-- item termahal
-- item termurah
+#### 6. Get Item by ID
 
 Method
 ```
 GET
 ```
-
 Endpoint
 ```
-/items/stats
+/items/{id}
 ```
-Request Body
-```
-TIdak ada
-```
-
-Response Example
-```
-{
-  "total_items": 2,
-  "total_value": 30500000,
-  "most_expensive": {
-    "name": "Laptop",
-    "price": 15000000
-  },
-  "cheapest": {
-    "name": "Mouse",
-    "price": 100000
-  }
-}
-```
-
-### 5. Get item by ID
-Mengambil satu item berdasarkan ID.
-
-Method
-```
-GET
-```
-
-Endpoint
-```
-/items/{item_id}
-```
-
 Example Request
 ```
 /items/1
 ```
-
 Response Example
 ```
 {
@@ -308,104 +315,155 @@ Response Example
   "quantity": 2
 }
 ```
-
-Error response
+Error Response
 ```
 {
-  "detail": "Item dengan id=1 tidak ditemukan"
+  "detail": "Item tidak ditemukan"
 }
 ```
-
-### 6. Update item
-Memperbarui data berdasarkan ID. Endpoin ini menggunakan partial update, sehingga hanya field yang dikirim saja yang akan diubah.
+#### 7. Update Item
 
 Method
 ```
 PUT
 ```
-
 Endpoint
 ```
-/items/{item_id}
+/items/{id}
 ```
-
-Request Body Example
+Request Body
 ```
 {
-  "name": "Laptop Gaming Updated",
+  "name": "Laptop Updated",
   "price": 16000000,
   "quantity": 3
 }
 ```
-
 Response Example
 ```
 {
   "id": 1,
-  "name": "Laptop Gaming Updated",
+  "name": "Laptop Updated",
   "price": 16000000,
   "description": "Laptop gaming",
   "quantity": 3
 }
 ```
-
-Error response
-```
-{
-  "detail": "Item dengan id=1 tidak ditemukan"
-}
-```
-
-### 7. Delete Item
-Menghapus item dari database.
+#### 8. Delete Item
 
 Method
 ```
 DELETE
 ```
-
 Endpoint
 ```
-/items/{item_id}
+/items/{id}
 ```
-
-Example Request
-```
-DELETE /items/1
-```
-
 Response
 ```
-204 No Content
-```
-
-Error response
-```
 {
-  "detail": "Item dengan id=1 tidak ditemukan"
+  "message": "Deleted"
 }
 ```
-
-### 8. Team Information
-Menampilkan informasi tim pengembang.
+#### 9. Get Candidates (Public)
 
 Method
 ```
 GET
 ```
-
 Endpoint
 ```
-/team
+/candidates
 ```
-
-Request Body
-```
-Tidak ada 
-```
-
 Response Example
 ```
+[
+  {
+    "id": 1,
+    "name": "Candidate A",
+    "description": "Example candidate"
+  }
+]
+```
+#### 10. Create Candidate (ADMIN ONLY)
+
+Method
+```
+POST
+```
+Endpoint
+```
+/admin/candidates
+```
+Authorization Role
+```
+admin / superadmin
+```
+Request Body
+```
+{
+  "name": "Candidate A",
+  "description": "Example"
+}
+```
+#### 11. Update Candidate (ADMIN ONLY)
+
+Method
+```
+PUT
+```
+Endpoint
+```
+/admin/candidates/{id}
+```
+#### 12. Delete Candidate (ADMIN ONLY)
+
+Method
+```
+DELETE
+```
+Endpoint
+```
+/admin/candidates/{id}
+```
+#### 13. List Candidates (ADMIN ONLY)
+
+Method
+```
+GET
+```
+Endpoint
+```
+/admin/candidates
+```
+#### 14. Health Check
+
+Method
+```
+GET
+```
+Endpoint
+```
+/health
+```
+Response Example
+```
+{
+  "status": "ok"
+}
+```
+#### 15. Team Information
+
+Method
+'''
+GET
+'''
+Endpoint
+'''
+/team
+'''
+Response Example
+'''
 {
   "team": "CCC_Clan",
   "members": [
@@ -429,9 +487,10 @@ Response Example
       "nim": "10231004",
       "role": "Lead QA & Docs"
     }
-  ]
-}
+  ]}
 ```
+
+
 ## Test Case Auth dan CRUD
 ### 1. Register User
 
