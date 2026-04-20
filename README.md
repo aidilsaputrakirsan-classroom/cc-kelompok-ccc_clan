@@ -455,15 +455,15 @@ Response Example
 #### 15. Team Information
 
 Method
-'''
+```
 GET
-'''
+```
 Endpoint
-'''
+```
 /team
-'''
+```
 Response Example
-'''
+```
 {
   "team": "CCC_Clan",
   "members": [
@@ -490,35 +490,50 @@ Response Example
   ]}
 ```
 
+## TEST CASE AUTH & CRUD – SIPILIH (Cloud App API)
 
-## Test Case Auth dan CRUD
-### 1. Register User
+Dokumentasi pengujian fitur autentikasi dan CRUD pada sistem SIPILIH menggunakan FastAPI + JWT Authentication.
 
-**Endpoint:** `POST /auth/register`
+---
 
-**Request Body:**
+1. Register User
 
+Endpoint:
+```
+POST /auth/register
+```
+
+Request Body:
 ```json
 {
   "email": "qatest@gmail.com",
   "name": "lead qa",
-  "password": "Testing123!"
+  "password": "Testing123!",
+  "nim": "10231000",
+  "prodi": "Informatika",
+  "jurusan": "Teknik Informatika",
+  "fakultas": "Teknik",
+  "angkatan": "2023"
 }
 ```
 
-**Expected Result:**
+Expected Result:
+- Status: `201 Created`
+- User berhasil dibuat di database
 
-* Status: `201 Created`
-* User berhasil dibuat
+Status:
+✅ Berhasil
 
-**Status:** ✅ berhasil
+---
 
-### 2. Login User
+2. Login User
 
-**Endpoint:** `POST /auth/login`
+Endpoint:
+```
+POST /auth/login
+```
 
-**Request Body:**
-
+Request Body:
 ```json
 {
   "email": "qatest@gmail.com",
@@ -526,160 +541,211 @@ Response Example
 }
 ```
 
-**Expected Result:**
+Expected Result:
+- Status: `200 OK`
+- Mendapatkan JWT access token
 
-* Status: `200`
-* Mendapatkan `access_token`
-
-**Contoh Response:**
-
+Contoh Response:
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzc0MjA0MDA5fQ.3lOVVsakaBKWzUv1ZLT_zQLv7G8mG6xIcWngKMhXA3s",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "token_type": "bearer",
   "user": {
     "id": 2,
     "email": "qatest@gmail.com",
     "name": "lead qa",
-    "is_active": true,
-    "created_at": "2026-03-23T01:25:54.286166+08:00"
+    "role": "user",
+    "is_active": true
   }
 }
 ```
 
-**Status:** ✅ berhasil
+Status:
+✅ Berhasil
 
-### 3. Authorize di Swagger (BUG)
+---
 
-**Expected Flow:**
+3. Swagger Authorize (Issue)
 
+Expected Flow:
 1. Klik tombol **Authorize 🔒**
-2. Input token:
-
+2. Input:
 ```
 Bearer <access_token>
 ```
-
 3. Klik Authorize
 
-**Actual Result:**
+Actual Result:
+- Tidak ada field input token yang berfungsi
+- Authorization header tidak terkirim ke backend
 
-* Tidak ada field untuk input token
-* Muncul error:
-
-```
-Auth error: Unprocessable Entity
-```
-
-**Status:** ❌ Gagal
-
-### 4. Get Current User
-
-**Endpoint:** `GET /auth/me`
-
-**Expected Result:**
-
-* Status: `200`
-* Mengembalikan data user
-
-**Actual Result:**
-
-* Tidak bisa karena token tidak bisa di-set
-
-**Status:** ❌ gagal
-
-### 5. CRUD Items (Protected)
-
-Semua endpoint berikut membutuhkan token:
-
-* `POST /items`
-* `GET /items`
-* `PUT /items/{id}`
-* `DELETE /items/{id}`
-
-**Expected Result:**
-
-* Bisa akses setelah login
-
-**Actual Result:**
-
-* Selalu error `401 Unauthorized`
-
-**Status:** ❌ gagal
+Status:
+❌ Gagal
 
 ---
 
-## 🔐 Authentication
+4. Get Current User
 
-### 🔑 Cara Kerja
+Endpoint:
+GET /auth/me
 
+Expected Result:
+- Status: `200 OK`
+- Mengembalikan data user login
+
+Actual Result:
+- Tidak bisa diakses karena token tidak terkirim dari Swagger
+
+Status:
+❌ Gagal
+
+---
+
+5. CRUD Items (Legacy / Protected Endpoint)
+
+Endpoint:
+- POST /items
+- GET /items
+- PUT /items/{id}
+- DELETE /items/{id}
+
+Expected Result:
+- Semua endpoint bisa diakses setelah login
+
+Actual Result:
+```
+401 Unauthorized
+```
+
+Penyebab:
+- Token tidak terkirim dari Swagger UI
+
+Status:
+❌ Gagal
+
+---
+
+6. CRUD Candidate (Core SIPILIH System)
+
+Endpoint:
+- GET /admin/candidates
+- POST /admin/candidates
+- PUT /admin/candidates/{id}
+- DELETE /admin/candidates/{id}
+
+Expected Result:
+- Admin dapat melakukan full CRUD kandidat
+
+Actual Result:
+- Berjalan normal via frontend dengan token valid
+
+Status:
+✅ Berhasil
+
+---
+
+## AUTH MECHANISM
+
+### Flow Sistem:
 1. User register
-2. User login → mendapatkan JWT token
-3. Token dikirim ke header:
-
+2. User login → JWT token dihasilkan
+3. Token disimpan di frontend
+4. Request dikirim dengan header:
 ```
 Authorization: Bearer <token>
 ```
-
-4. Backend memverifikasi token
-
-## ⚠️ BUG AUTH
-
-### ❌ Masalah:
-
-Swagger tidak menyediakan input token saat klik **Authorize**
-
-### 💥 Penyebab:
-
-Di file `auth.py`:
-
-```python
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-```
-
-Masalah:
-
-* Swagger default menganggap login menggunakan **form-data (username & password)**
-* Namun pada API memakai **JSON body**
-* Akibatnya Swagger gagal generate form token → muncul error `422 Unprocessable Entity`
+5. Backend decode token & validasi user
 
 ---
 
-## 📦 API Endpoint List
+## BUG REPORT
+
+### ❌ BUG 1 – Swagger Authorize Tidak Berfungsi
+
+Error:
+- Tidak bisa input token di Swagger UI
+- Authorization header tidak aktif
+
+Root Cause:
+```python
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+```
+
+Masalah:
+- Swagger OAuth2 default mengharapkan form-data login
+- Backend menggunakan JSON login
+- Akibatnya Swagger gagal generate token flow
+
+---
+
+### ❌ BUG 2 – 401 Unauthorized di Swagger
+
+Error:
+```
+401 Unauthorized
+```
+
+Penyebab:
+- Token tidak pernah dikirim dari Swagger ke backend
+
+---
+
+## TECHNICAL ANALYSIS
+
+auth.py (JWT System)
+- JWT dibuat menggunakan `python-jose`
+- Password hashing menggunakan `bcrypt`
+
+Token Payload:
+```json
+{
+  "sub": "user_id",
+  "role": "user/admin"
+}
+```
+
+Role Check:
+```python
+require_role(["admin", "superadmin"])
+```
+
+---
+
+## crud.py (Database Layer)
+- SQLAlchemy ORM
+- Handle:
+  - User management
+  - Candidate CRUD
+  - Item CRUD (legacy)
+
+Semua query menggunakan session dependency injection
+
+---
+
+## 📦 API SUMMARY
 
 ### 🔓 Public Endpoints
 
-| Method | Endpoint         | Description     |
-| ------ | ---------------- | --------------- |
-| GET    | `/health`        | Cek server      |
-| POST   | `/auth/register` | Registrasi user |
-| POST   | `/auth/login`    | Login user      |
+| Method | Endpoint       | Deskripsi     |
+|--------|----------------|---------------|
+| GET    | /health        | Cek server    |
+| POST   | /auth/register | Register user |
+| POST   | /auth/login    | Login user    |
 
+---
 
 ### 🔒 Protected Endpoints
 
-| Method | Endpoint      | Description |
-| ------ | ------------- | ----------- |
-| GET    | `/auth/me`    | Data user   |
-| POST   | `/items`      | Create item |
-| GET    | `/items`      | List items  |
-| GET    | `/items/{id}` | Get item    |
-| PUT    | `/items/{id}` | Update item |
-| DELETE | `/items/{id}` | Delete item |
+| Method | Endpoint               | Deskripsi       |
+|--------|------------------------|-----------------|
+| GET    | /auth/me               | Data user login |
+| GET    | /admin/candidates      | List kandidat   |
+| POST   | /admin/candidates      | Create kandidat |
+| PUT    | /admin/candidates/{id} | Update kandidat |
+| DELETE | /admin/candidates/{id} | Delete kandidat |
 
-## 🐞 Bug Report
+---
 
-### 1. Swagger Authorize Error
-
-* Error: `422 Unprocessable Entity`
-* Penyebab: OAuth2PasswordBearer tidak cocok dengan JSON login
-* Impact: Tidak bisa testing protected endpoint di Swagger
-
-### 2. Protected Endpoint Tidak Bisa Diakses
-
-* Error: `401 Unauthorized`
-* Penyebab: Token tidak pernah dikirim
-* Root cause: Swagger auth gagal
 
 ## Docker Setup
 
