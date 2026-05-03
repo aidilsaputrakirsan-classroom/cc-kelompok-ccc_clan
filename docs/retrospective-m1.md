@@ -43,3 +43,10 @@ Milestone 1 berfokus pada pembangunan aplikasi full-stack berbasis cloud yang da
 ### DevOps
 - [ ] Docker Compose profile dev & prod berjalan
 - [ ] Environment variable terbaca dengan benar
+
+## Kontribusi Tim | Anggota | Kontribusi Utama | Jumlah Commit | 
+|---------|-----------------|---------------| 
+| Dzakwan Fatih Fadhillah | Pengembangan API | 17 |
+| Rizky Nur Fatimah Bahar | UI & halaman utama | 22 |
+| Muhammad Dani | Setup Docker | 18 |
+| Ade Ayu Kholifah Putri | Dokumentasi & QA | 22 |
