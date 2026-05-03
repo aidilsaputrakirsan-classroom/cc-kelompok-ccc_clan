@@ -16,3 +16,30 @@ Milestone 1 berfokus pada pembangunan aplikasi full-stack berbasis cloud yang da
 - Kurangnya komunikasi terkait progress masing-masing anggota
 - Belum ada standar dokumentasi yang konsisten
 - Testing belum dilakukan secara terstruktur
+
+## Action Items untuk Milestone 2
+
+- Menerapkan GitHub Flow (feature branch + pull request + code review)
+- Menetapkan aturan commit message menggunakan Conventional Commits
+- Menggunakan PR template untuk standarisasi
+- Meningkatkan komunikasi tim (update progress secara berkala)
+- Menambahkan dokumentasi teknis yang lebih lengkap
+- Mulai menerapkan CI/CD pipeline
+
+---
+
+## QA & Testing Plan (Milestone 2)
+
+### Backend
+- [ ] Endpoint `/health` mengembalikan status service
+- [ ] Endpoint CRUD berjalan dengan benar
+- [ ] Error handling berfungsi dengan baik
+
+### Frontend
+- [ ] Halaman About dapat diakses
+- [ ] Navigasi antar halaman berjalan normal
+- [ ] Tampilan responsif
+
+### DevOps
+- [ ] Docker Compose profile dev & prod berjalan
+- [ ] Environment variable terbaca dengan benar
