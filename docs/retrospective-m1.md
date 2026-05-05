@@ -14,7 +14,7 @@ Milestone 1 berfokus pada pembangunan aplikasi full-stack berbasis cloud yang da
 - Koordinasi tim masih kurang efektif (beberapa task tidak berjalan paralel)
 - Belum menggunakan Git workflow yang proper (masih push langsung ke main)
 - Kurangnya komunikasi terkait progress masing-masing anggota
-- Belum ada standar dokumentasi yang konsisten
+- Dokumentasi masih belum lengkap dan kurang rapi
 - Testing belum dilakukan secara terstruktur
 
 ## Action Items untuk Milestone 2
@@ -25,8 +25,6 @@ Milestone 1 berfokus pada pembangunan aplikasi full-stack berbasis cloud yang da
 - Meningkatkan komunikasi tim (update progress secara berkala)
 - Menambahkan dokumentasi teknis yang lebih lengkap
 - Mulai menerapkan CI/CD pipeline
-
----
 
 ## QA & Testing Plan (Milestone 2)
 
@@ -44,7 +42,8 @@ Milestone 1 berfokus pada pembangunan aplikasi full-stack berbasis cloud yang da
 - [ ] Docker Compose profile dev & prod berjalan
 - [ ] Environment variable terbaca dengan benar
 
-## Kontribusi Tim | Anggota | Kontribusi Utama | Jumlah Commit | 
+## Kontribusi Tim 
+| Anggota | Kontribusi Utama | Jumlah Commit | 
 |---------|-----------------|---------------| 
 | Dzakwan Fatih Fadhillah | Pengembangan API | 17 |
 | Rizky Nur Fatimah Bahar | UI & halaman utama | 22 |
