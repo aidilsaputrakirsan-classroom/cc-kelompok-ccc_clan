@@ -1,18 +1,18 @@
 # UI Testing Results
 
-## Test Case 1 – API Connection
+## Test Case 1 – Landing Page
 - Status: Berhasil
-- Penjelasan: Pengujian ini dilakukan untuk memastikan frontend berhasil terhubung dengan backend API saat aplikasi pertama kali dibuka. Dimana hasil yang diharapkan dan yang ditampilkan adalah halaman utama yang menampilkan tulisan Cloud App, badge hijau API Connected, serta jumlah item yang tersedia. Ini menunjukkan koneksi antara frontend dan backend berjalan dengan baik.
+- Penjelasan: Pengujian ini dilakukan untuk memastikan frontend berhasil berjalan.
 - Screenshot:
-![API Connected](screenshots/01-api-connected.png)
+![API Connected](screenshots/landingpage.png)
 
 ---
 
-## Test Case 2 – Items Loaded
+## Test Case 2 – Register Page
 - Status: Berhasil
-- Penjelasan: Pengujian ini dilakukan untuk memastikan data item dari database berhasil ditampilkan di antarmuka aplikasi. Hasil yang diharapkan dan ditampilkan yaitu daftar item muncul di halaman dengan informasi seperti nama item, harga, deskripsi, dan stok. Minimal terdapat beberapa item yang berhasil dimuat dari database.
+- Penjelasan: Pengujian ini dilakukan untuk memastikan pengguna dapat melakukan register.
 - Screenshot:
-![Items Loaded](screenshots/02-items-loaded.png)
+![Items Loaded](screenshots/registerpage.png)
 
 ---
 
