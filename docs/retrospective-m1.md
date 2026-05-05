@@ -14,7 +14,7 @@ Milestone 1 berfokus pada pembangunan aplikasi full-stack berbasis cloud yang da
 - Koordinasi tim masih kurang efektif (beberapa task tidak berjalan paralel)
 - Belum menggunakan Git workflow yang proper (masih push langsung ke main)
 - Kurangnya komunikasi terkait progress masing-masing anggota
-- Belum ada standar dokumentasi yang konsisten
+- Dokumentasi masih belum lengkap dan kurang rapi
 - Testing belum dilakukan secara terstruktur
 
 ## Action Items untuk Milestone 2
