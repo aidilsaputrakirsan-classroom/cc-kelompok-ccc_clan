@@ -6,6 +6,7 @@ import DashboardPage from "./components/DashboardPage";
 import CandidatesPage from "./components/CandidatesPage";
 import CandidateFormPage from "./components/CandidateFormPage";
 import CandidateDetailPage from "./components/CandidateDetailPage";
+import AboutPage from "./components/AboutPage";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
       <Route path="/candidates/create" element={<CandidateFormPage />} />
       <Route path="/candidates/:id" element={<CandidateDetailPage />} />
       <Route path="/candidates/:id/edit" element={<CandidateFormPage />} />
+      <Route path="/about" element={<AboutPage />} />
     </Routes>
   );
 }

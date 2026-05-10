@@ -13,7 +13,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   backend:
-    build: ./backend
+    image: bentosaputra/sipilih-backend:v1
     container_name: fastapi_backend
     depends_on:
       - db
@@ -25,7 +25,7 @@ services:
       - ./backend:/app
 
   frontend:
-    image: sipilih-frontend:v1
+    image: bentosaputra/sipilih-frontend:v1
     container_name: sipilih_frontend
     restart: always
     ports:
