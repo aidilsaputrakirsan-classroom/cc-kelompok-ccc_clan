@@ -11,7 +11,8 @@ from models import Base, User
 from schemas import (
     ItemCreate, ItemUpdate, ItemResponse, ItemListResponse,
     UserCreate, UserResponse, LoginRequest, TokenResponse,
-    CandidateCreate, CandidateUpdate, CandidateResponse
+    CandidateCreate, CandidateUpdate, CandidateResponse,
+    VoteResponse, VoteResultResponse
 )
 from auth import create_access_token, get_current_user
 import crud
@@ -208,6 +209,24 @@ def list_candidates(
     user: User = Depends(require_role(["admin", "superadmin"]))
 ):
     return crud.get_candidates(db)
+
+
+# ================= VOTING =================
+
+@app.post("/vote/{candidate_id}", response_model=VoteResponse)
+def vote_candidate(
+    candidate_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    return crud.vote_candidate(db, user.id, candidate_id)
+
+
+@app.get("/vote/results", response_model=list[VoteResultResponse])
+def vote_results(
+    db: Session = Depends(get_db)
+):
+    return crud.get_vote_results(db)
 
 
 # ================= TEAM =================

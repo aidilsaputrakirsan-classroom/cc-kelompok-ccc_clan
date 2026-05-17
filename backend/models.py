@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean
 from sqlalchemy.sql import func
+from sqlalchemy import ForeignKey
 from database import Base
 
 # ================= ITEM =================
@@ -73,3 +74,15 @@ class Candidate(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+# ================= VOTE =================
+class Vote(Base):
+    __tablename__ = "votes"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    candidate_id = Column(Integer, ForeignKey("candidates.id"), nullable=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

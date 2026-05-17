@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
-from models import Item, User, Candidate
+from sqlalchemy import or_, func
+from models import Item, User, Candidate, Vote
 from schemas import ItemCreate, ItemUpdate, UserCreate, CandidateCreate, CandidateUpdate
 from auth import hash_password, verify_password
+from fastapi import HTTPException
 
 
 # ================= ITEM =================
@@ -137,3 +138,54 @@ def delete_candidate(db: Session, candidate_id: int):
     db.delete(candidate)
     db.commit()
     return True
+
+
+# ================= VOTING =================
+
+def vote_candidate(db: Session, user_id: int, candidate_id: int):
+
+    # cek user sudah voting atau belum
+    existing_vote = db.query(Vote).filter(
+        Vote.user_id == user_id
+    ).first()
+
+    if existing_vote:
+        raise HTTPException(
+            status_code=400,
+            detail="User sudah melakukan voting"
+        )
+
+    # cek candidate ada atau tidak
+    candidate = db.query(Candidate).filter(
+        Candidate.id == candidate_id
+    ).first()
+
+    if not candidate:
+        raise HTTPException(
+            status_code=404,
+            detail="Candidate tidak ditemukan"
+        )
+
+    vote = Vote(
+        user_id=user_id,
+        candidate_id=candidate_id
+    )
+
+    db.add(vote)
+    db.commit()
+
+    return {"message": "Voting berhasil"}
+
+
+def get_vote_results(db: Session):
+
+    results = (
+        db.query(
+            Vote.candidate_id,
+            func.count(Vote.id).label("total_votes")
+        )
+        .group_by(Vote.candidate_id)
+        .all()
+    )
+
+    return results
