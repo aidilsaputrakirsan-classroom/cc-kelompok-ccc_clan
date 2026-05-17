@@ -117,10 +117,11 @@ def get_items(
     skip: int = Query(0),
     limit: int = Query(20),
     search: str = Query(None),
+    category: str = Query(None),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    return crud.get_items(db, skip, limit, search)
+    return crud.get_items(db, skip, limit, search, category)
 
 
 @app.get("/items/{id}", response_model=ItemResponse)

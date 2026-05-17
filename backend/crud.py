@@ -14,7 +14,7 @@ def create_item(db: Session, item_data: ItemCreate) -> Item:
     return db_item
 
 
-def get_items(db: Session, skip=0, limit=20, search=None):
+def get_items(db: Session, skip=0, limit=20, search=None, category=None):
     query = db.query(Item)
 
     if search:
@@ -23,6 +23,11 @@ def get_items(db: Session, skip=0, limit=20, search=None):
                 Item.name.ilike(f"%{search}%"),
                 Item.description.ilike(f"%{search}%")
             )
+        )
+
+    if category:
+        query = query.filter(
+            Item.category.ilike(f"%{category}%")
         )
 
     total = query.count()
