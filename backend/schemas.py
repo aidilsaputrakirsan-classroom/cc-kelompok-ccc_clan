@@ -7,6 +7,7 @@ import re
 class ItemBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
+    category: Optional[str] = None
     price: float = Field(..., gt=0)
     quantity: int = Field(0, ge=0)
 
@@ -18,6 +19,7 @@ class ItemCreate(ItemBase):
 class ItemUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = None
+    category: Optional[str] = None
     price: Optional[float] = Field(None, gt=0)
     quantity: Optional[int] = Field(None, ge=0)
 
