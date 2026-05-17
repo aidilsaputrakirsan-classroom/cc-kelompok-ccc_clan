@@ -142,3 +142,13 @@ class CandidateResponse(CandidateBase):
 
     class Config:
         from_attributes = True
+
+
+# ==================== VOTE ====================
+
+class VoteResponse(BaseModel):
+    message: str
+
+class VoteResultResponse(BaseModel):
+    candidate_id: int
+    total_votes: int
