@@ -7,10 +7,12 @@ import CandidatesPage from "./components/CandidatesPage";
 import CandidateFormPage from "./components/CandidateFormPage";
 import CandidateDetailPage from "./components/CandidateDetailPage";
 import AboutPage from "./components/AboutPage";
+import { ThemeProvider } from "./context/ThemeContext";
 
 function App() {
   return (
-    <Routes>
+    <ThemeProvider>
+     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
@@ -20,7 +22,8 @@ function App() {
       <Route path="/candidates/:id" element={<CandidateDetailPage />} />
       <Route path="/candidates/:id/edit" element={<CandidateFormPage />} />
       <Route path="/about" element={<AboutPage />} />
-    </Routes>
+     </Routes>
+    </ThemeProvider>
   );
 }
 

@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logout } from "../services/api";
+import { useTheme } from "../context/UseTheme";
 import ConfirmModal from "./ConfirmModal";
 
 function AdminNavbar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const openLogoutModal = () => {
@@ -52,13 +54,24 @@ function AdminNavbar() {
 
           <Link
             to="/candidates"
-            className={location.pathname.startsWith("/candidates") ? "nav-active" : ""}
+            className={
+              location.pathname.startsWith("/candidates") ? "nav-active" : ""
+            }
           >
             Kandidat
           </Link>
         </div>
 
         <div className="admin-navbar-right">
+          <button
+            type="button"
+            className="btn btn-outline theme-toggle-btn"
+            onClick={toggleDarkMode}
+            aria-label="Toggle dark mode"
+          >
+            {isDarkMode ? "☀️ Light" : "🌙 Dark"}
+          </button>
+
           <button className="btn btn-outline" onClick={openLogoutModal}>
             Logout
           </button>
