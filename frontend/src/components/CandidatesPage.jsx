@@ -3,10 +3,16 @@ import { Link, useNavigate } from "react-router-dom";
 import AdminNavbar from "./AdminNavbar";
 import Toast from "./Toast";
 import ConfirmModal from "./ConfirmModal";
-import { getAdminCandidates, deleteCandidate } from "../services/api";
+import {
+  getAdminCandidates,
+  getPublicCandidates,
+  deleteCandidate,
+} from "../services/api";
+import { canManageCandidates } from "../utils/auth";
 
 function CandidatesPage() {
   const navigate = useNavigate();
+  const canManage = canManageCandidates();
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -52,7 +58,10 @@ function CandidatesPage() {
       setLoading(true);
       setError("");
 
-      const data = await getAdminCandidates();
+      const data = canManage
+      ? await getAdminCandidates()
+      : await getPublicCandidates();
+    
       setCandidates(data || []);
     } catch (err) {
       if (err.message === "UNAUTHORIZED") {
@@ -64,7 +73,7 @@ function CandidatesPage() {
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, [navigate, canManage]);
 
   useEffect(() => {
     fetchCandidates();
@@ -136,20 +145,27 @@ function CandidatesPage() {
       <div className="candidates-page">
         <div className="candidate-hero">
           <div>
-            <span className="candidate-badge">Manajemen Kandidat</span>
-            <h1>Daftar Kandidat</h1>
+            <span className="candidate-badge">
+              {canManage ? "Manajemen Kandidat" : "Daftar Kandidat"}
+            </span>
+
+            <h1>{canManage ? "Kelola Kandidat" : "Kandidat SIPILIH"}</h1>
+
             <p>
-              Kelola seluruh data kandidat SIPILIH dengan tampilan yang lebih
-              rapi, terstruktur, dan mudah diakses.
+              {canManage
+                ? "Kelola seluruh data kandidat SIPILIH dengan tampilan yang lebih rapi, terstruktur, dan mudah diakses."
+                : "Lihat profil kandidat SIPILIH sebelum menentukan pilihanmu."}
             </p>
           </div>
 
-          <Link
-            to="/candidates/create"
-            className="btn btn-primary candidate-add-btn"
-          >
-            + Tambah Kandidat
-          </Link>
+          {canManage && (
+            <Link
+              to="/candidates/create"
+              className="btn btn-primary candidate-add-btn"
+            >
+              + Tambah Kandidat
+            </Link>
+          )}
         </div>
 
         <div className="candidate-table-card">
@@ -192,9 +208,11 @@ function CandidatesPage() {
                 Tambahkan kandidat pertama untuk mulai mengelola pemilihan pada
                 sistem SIPILIH.
               </p>
-              <Link to="/candidates/create" className="btn btn-primary">
-                Tambah Kandidat
-              </Link>
+              {canManage && (
+                <Link to="/candidates/create" className="btn btn-primary">
+                  Tambah Kandidat
+                </Link>
+              )}
             </div>
           ) : filteredCandidates.length === 0 ? (
             <div className="candidate-empty-state">
@@ -246,20 +264,24 @@ function CandidatesPage() {
                             Detail
                           </Link>
 
-                          <Link
-                            to={`/candidates/${candidate.id}/edit`}
-                            className="action-btn action-btn-edit"
-                          >
-                            Edit
-                          </Link>
+                          {canManage && (
+                            <>
+                              <Link
+                                to={`/candidates/${candidate.id}/edit`}
+                                className="action-btn action-btn-edit"
+                              >
+                                Edit
+                              </Link>
 
-                          <button
-                            type="button"
-                            className="action-btn action-btn-delete"
-                            onClick={() => openDeleteModal(candidate.id)}
-                          >
-                            Hapus
-                          </button>
+                              <button
+                                type="button"
+                                className="action-btn action-btn-delete"
+                                onClick={() => openDeleteModal(candidate.id)}
+                              >
+                                Hapus
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
