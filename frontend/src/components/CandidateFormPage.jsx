@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import AdminNavbar from "./AdminNavbar";
 import Toast from "./Toast";
+import { canManageCandidates } from "../utils/auth";
 import {
   createCandidate,
   getAdminCandidates,
@@ -13,6 +14,7 @@ function CandidateFormPage() {
   const { id } = useParams();
 
   const isEditMode = Boolean(id);
+  const canManage = canManageCandidates();
 
   const [step, setStep] = useState(1);
 
@@ -64,7 +66,13 @@ function CandidateFormPage() {
   };
 
   useEffect(() => {
-    if (!isEditMode) return;
+    if (!canManage) {
+      navigate("/candidates", { replace: true });
+    }
+  }, [canManage, navigate]);
+
+  useEffect(() => {
+    if (!canManage || !isEditMode) return;
 
     const fetchCandidateForEdit = async () => {
       try {
@@ -101,7 +109,7 @@ function CandidateFormPage() {
     };
 
     fetchCandidateForEdit();
-  }, [id, isEditMode]);
+  }, [id, isEditMode, canManage]);
 
   const handleChange = (e) => {
     setForm({
@@ -120,6 +128,12 @@ function CandidateFormPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!canManage) {
+      navigate("/candidates", { replace: true });
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -147,6 +161,10 @@ function CandidateFormPage() {
       setLoading(false);
     }
   };
+
+  if (!canManage) {
+    return null;
+  }
 
   return (
     <>
@@ -183,7 +201,9 @@ function CandidateFormPage() {
               <div className="form-step-tabs">
                 <button
                   type="button"
-                  className={step === 1 ? "step-tab step-tab-active" : "step-tab"}
+                  className={
+                    step === 1 ? "step-tab step-tab-active" : "step-tab"
+                  }
                   onClick={() => setStep(1)}
                 >
                   1. Biodata Kandidat
@@ -191,7 +211,9 @@ function CandidateFormPage() {
 
                 <button
                   type="button"
-                  className={step === 2 ? "step-tab step-tab-active" : "step-tab"}
+                  className={
+                    step === 2 ? "step-tab step-tab-active" : "step-tab"
+                  }
                   onClick={() => setStep(2)}
                 >
                   2. Visi, Misi, Inovasi
@@ -352,8 +374,8 @@ function CandidateFormPage() {
                             ? "Menyimpan perubahan..."
                             : "Menyimpan..."
                           : isEditMode
-                          ? "Update Kandidat"
-                          : "Simpan Kandidat"}
+                            ? "Update Kandidat"
+                            : "Simpan Kandidat"}
                       </button>
                     </div>
                   </div>

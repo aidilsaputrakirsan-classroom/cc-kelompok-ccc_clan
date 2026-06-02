@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import AdminNavbar from "./AdminNavbar";
-import { getAdminCandidates } from "../services/api";
+import { getAdminCandidates, getPublicCandidates } from "../services/api";
+import { canManageCandidates } from "../utils/auth";
 
 function CandidateDetailPage() {
   const { id } = useParams();
+  const canManage = canManageCandidates();
 
   const [candidate, setCandidate] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -16,7 +18,10 @@ function CandidateDetailPage() {
         setLoading(true);
         setError("");
 
-        const data = await getAdminCandidates();
+        const data = canManage
+          ? await getAdminCandidates()
+          : await getPublicCandidates();
+
         const selectedCandidate = data.find(
           (item) => item.id === Number(id)
         );
@@ -35,7 +40,7 @@ function CandidateDetailPage() {
     };
 
     fetchCandidateDetail();
-  }, [id]);
+  }, [id, canManage]);
 
   return (
     <>
@@ -52,7 +57,11 @@ function CandidateDetailPage() {
               <div className="detail-header">
                 <div>
                   <h1>Detail Kandidat</h1>
-                  <p>Informasi lengkap kandidat SIPILIH.</p>
+                  <p>
+                    {canManage
+                      ? "Informasi lengkap kandidat SIPILIH untuk kebutuhan pengelolaan."
+                      : "Informasi lengkap kandidat SIPILIH untuk membantu menentukan pilihan."}
+                  </p>
                 </div>
 
                 <div className="detail-header-actions">
@@ -60,12 +69,14 @@ function CandidateDetailPage() {
                     Kembali
                   </Link>
 
-                  <Link
-                    to={`/candidates/${candidate.id}/edit`}
-                    className="btn btn-primary"
-                  >
-                    Edit Kandidat
-                  </Link>
+                  {canManage && (
+                    <Link
+                      to={`/candidates/${candidate.id}/edit`}
+                      className="btn btn-primary"
+                    >
+                      Edit Kandidat
+                    </Link>
+                  )}
                 </div>
               </div>
 
