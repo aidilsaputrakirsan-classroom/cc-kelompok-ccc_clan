@@ -8,21 +8,24 @@ import CandidateFormPage from "./components/CandidateFormPage";
 import CandidateDetailPage from "./components/CandidateDetailPage";
 import AboutPage from "./components/AboutPage";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { ThemeProvider } from "./context/ThemeContext";
 
 function App() {
   return (
     <ErrorBoundary>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/candidates" element={<CandidatesPage />} />
-        <Route path="/candidates/create" element={<CandidateFormPage />} />
-        <Route path="/candidates/:id" element={<CandidateDetailPage />} />
-        <Route path="/candidates/:id/edit" element={<CandidateFormPage />} />
-        <Route path="/about" element={<AboutPage />} />
-      </Routes>
+      <ThemeProvider>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/candidates" element={<CandidatesPage />} />
+          <Route path="/candidates/create" element={<CandidateFormPage />} />
+          <Route path="/candidates/:id" element={<CandidateDetailPage />} />
+          <Route path="/candidates/:id/edit" element={<CandidateFormPage />} />
+          <Route path="/about" element={<AboutPage />} />
+        </Routes>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }
