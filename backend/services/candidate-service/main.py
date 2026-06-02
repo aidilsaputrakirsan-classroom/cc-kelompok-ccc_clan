@@ -1,0 +1,224 @@
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from database import Base, engine, get_db
+from models import Candidate
+from schemas import (
+    CandidateCreate,
+    CandidateUpdate,
+    CandidateResponse,
+    CandidateStatsResponse
+)
+
+from auth_client import verify_token
+
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="Candidate Service")
+
+
+# ================= HEALTH =================
+
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy",
+        "service": "candidate-service"
+    }
+
+
+# ================= PUBLIC =================
+
+@app.get(
+    "/candidates",
+    response_model=list[CandidateResponse]
+)
+def get_candidates(
+    db: Session = Depends(get_db)
+):
+    return (
+        db.query(Candidate)
+        .order_by(Candidate.created_at.desc())
+        .all()
+    )
+
+
+# ================= ADMIN =================
+
+@app.post(
+    "/admin/candidates",
+    response_model=CandidateResponse
+)
+async def create_candidate(
+    data: CandidateCreate,
+    db: Session = Depends(get_db),
+    user=Depends(verify_token)
+):
+    if user["role"] not in [
+        "admin",
+        "superadmin"
+    ]:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden"
+        )
+
+    candidate = Candidate(
+        **data.model_dump(),
+        status="approved"
+    )
+
+    db.add(candidate)
+    db.commit()
+    db.refresh(candidate)
+
+    return candidate
+
+
+@app.put(
+    "/admin/candidates/{candidate_id}",
+    response_model=CandidateResponse
+)
+async def update_candidate(
+    candidate_id: int,
+    data: CandidateUpdate,
+    db: Session = Depends(get_db),
+    user=Depends(verify_token)
+):
+    if user["role"] not in [
+        "admin",
+        "superadmin"
+    ]:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden"
+        )
+
+    candidate = (
+        db.query(Candidate)
+        .filter(
+            Candidate.id == candidate_id
+        )
+        .first()
+    )
+
+    if not candidate:
+        raise HTTPException(
+            status_code=404,
+            detail="Not found"
+        )
+
+    for key, value in (
+        data.model_dump(
+            exclude_unset=True
+        ).items()
+    ):
+        setattr(
+            candidate,
+            key,
+            value
+        )
+
+    db.commit()
+    db.refresh(candidate)
+
+    return candidate
+
+
+@app.delete(
+    "/admin/candidates/{candidate_id}"
+)
+async def delete_candidate(
+    candidate_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(verify_token)
+):
+    if user["role"] not in [
+        "admin",
+        "superadmin"
+    ]:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden"
+        )
+
+    candidate = (
+        db.query(Candidate)
+        .filter(
+            Candidate.id == candidate_id
+        )
+        .first()
+    )
+
+    if not candidate:
+        raise HTTPException(
+            status_code=404,
+            detail="Not found"
+        )
+
+    db.delete(candidate)
+    db.commit()
+
+    return {
+        "message": "Deleted"
+    }
+
+
+@app.get(
+    "/admin/candidates",
+    response_model=list[CandidateResponse]
+)
+async def list_candidates(
+    db: Session = Depends(get_db),
+    user=Depends(verify_token)
+):
+    if user["role"] not in [
+        "admin",
+        "superadmin"
+    ]:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden"
+        )
+
+    return (
+        db.query(Candidate)
+        .order_by(Candidate.created_at.desc())
+        .all()
+    )
+
+
+# ================= MODULE 12 =================
+
+@app.get(
+    "/candidates/stats",
+    response_model=CandidateStatsResponse
+)
+def candidate_stats(
+    db: Session = Depends(get_db)
+):
+    total = db.query(
+        Candidate
+    ).count()
+
+    approved = (
+        db.query(Candidate)
+        .filter(
+            Candidate.status == "approved"
+        )
+        .count()
+    )
+
+    pending = (
+        db.query(Candidate)
+        .filter(
+            Candidate.status == "pending"
+        )
+        .count()
+    )
+
+    return {
+        "total_candidates": total,
+        "approved_candidates": approved,
+        "pending_candidates": pending
+    }
