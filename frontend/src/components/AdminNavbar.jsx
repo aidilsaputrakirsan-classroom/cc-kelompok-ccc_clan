@@ -1,12 +1,20 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logout } from "../services/api";
+import { useTheme } from "../context/UseTheme";
 import ConfirmModal from "./ConfirmModal";
+import { getStoredUser, canManageCandidates, isSuperAdmin } from "../utils/auth";
 
 function AdminNavbar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const user = getStoredUser();
+  const role = user?.role || "guest";
+  const canManage = canManageCandidates();
+  const superAdmin = isSuperAdmin();
 
   const openLogoutModal = () => {
     setShowLogoutModal(true);
@@ -52,13 +60,66 @@ function AdminNavbar() {
 
           <Link
             to="/candidates"
-            className={location.pathname.startsWith("/candidates") ? "nav-active" : ""}
+            className={
+              location.pathname.startsWith("/candidates") ? "nav-active" : ""
+            }
           >
             Kandidat
           </Link>
+
+          <Link
+            to="/voting"
+            className={location.pathname === "/voting" ? "nav-active" : ""}
+          >
+            Voting
+          </Link>
+
+          <Link
+            to="/vote-results"
+            className={
+              location.pathname === "/vote-results" ? "nav-active" : ""
+            }
+          >
+            Hasil Voting
+          </Link>
+
+          {canManage && (
+            <Link
+              to="/admin/candidates"
+              className={
+                location.pathname.startsWith("/admin/candidates")
+                  ? "nav-active"
+                  : ""
+              }
+            >
+              Kelola Kandidat
+            </Link>
+          )}
+
+          {superAdmin && (
+            <Link
+              to="/manage-users"
+              className={
+                location.pathname === "/manage-users" ? "nav-active" : ""
+              }
+            >
+              Manajemen User
+            </Link>
+          )}
         </div>
 
-        <div className="admin-navbar-right">
+        <div className="admin-navbar-right">\
+        <span className="role-pill">{role}</span>
+        
+          <button
+            type="button"
+            className="btn btn-outline theme-toggle-btn"
+            onClick={toggleDarkMode}
+            aria-label="Toggle dark mode"
+          >
+            {isDarkMode ? "☀️ Light" : "🌙 Dark"}
+          </button>
+
           <button className="btn btn-outline" onClick={openLogoutModal}>
             Logout
           </button>

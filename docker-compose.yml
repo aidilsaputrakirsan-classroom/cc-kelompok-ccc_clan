@@ -11,12 +11,79 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bento -d sipilih"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  auth-db:
+    image: postgres:15
+    container_name: auth_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: auth_db
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d auth_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  candidate-db:
+    image: postgres:15
+    container_name: candidate_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: candidate_db
+    volumes:
+      - candidate_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d candidate_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  auth-service:
+    build:
+      context: ./backend/services/auth-service
+    container_name: auth_service
+    restart: unless-stopped
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@auth-db:5432/auth_db
+
+  candidate-service:
+    build:
+      context: ./backend/services/candidate-service
+    container_name: candidate_service
+    restart: unless-stopped
+    depends_on:
+      auth-service:
+        condition: service_started
+      candidate-db:
+        condition: service_healthy
+    ports:
+      - "8002:8002"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@candidate-db:5432/candidate_db
 
   backend:
     image: bentosaputra/sipilih-backend:v1
     container_name: fastapi_backend
+    restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "8000:8000"
     env_file:
@@ -33,5 +100,20 @@ services:
     depends_on:
       - backend
 
+  gateway:
+    image: nginx:alpine
+    container_name: api_gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./backend/services/gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service
+      - candidate-service
+      - frontend
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  auth_db_data:
+  candidate_db_data:

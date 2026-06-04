@@ -1,7 +1,11 @@
 import { useState } from "react";
 import AdminNavbar from "./AdminNavbar";
+import { canManageCandidates, isSuperAdmin } from "../utils/auth";
 
 function DashboardPage() {
+  const canManage = canManageCandidates();
+  const superAdmin = isSuperAdmin();
+
   const [user] = useState(() => {
     const savedUser = localStorage.getItem("user");
 
@@ -15,6 +19,18 @@ function DashboardPage() {
     }
   });
 
+  const dashboardTitle = superAdmin
+    ? "Dashboard Superadmin"
+    : canManage
+      ? "Dashboard Admin"
+      : "Dashboard Pemilih";
+
+  const dashboardDescription = superAdmin
+    ? "Kelola seluruh sistem SIPILIH, termasuk kandidat, voting, dan manajemen pengguna."
+    : canManage
+      ? "Kelola kandidat, pantau proses pemilihan, dan review hasil voting SIPILIH."
+      : "Lihat kandidat, lakukan voting, dan pantau hasil pemilihan SIPILIH.";
+
   return (
     <>
       <AdminNavbar />
@@ -22,12 +38,9 @@ function DashboardPage() {
       <div className="dashboard-page">
         <div className="dashboard-hero">
           <div className="dashboard-hero-text">
-            <span className="dashboard-badge">Dashboard SIPILIH</span>
-            <h1>Selamat Datang, {user?.name || "Admin"}</h1>
-            <p>
-              Kelola sistem SIPILIH dengan lebih rapi, terstruktur, dan mudah
-              diakses melalui dashboard admin.
-            </p>
+            <span className="dashboard-badge">{dashboardTitle}</span>
+            <h1>Selamat Datang, {user?.name || "Pengguna"}</h1>
+            <p>{dashboardDescription}</p>
           </div>
         </div>
 
@@ -37,6 +50,7 @@ function DashboardPage() {
               <div className="profile-avatar">
                 {user?.name ? user.name.charAt(0).toUpperCase() : "A"}
               </div>
+
               <div>
                 <h3>{user?.name || "-"}</h3>
                 <p>{user?.email || "-"}</p>
@@ -73,7 +87,9 @@ function DashboardPage() {
                 <span>Status Akun</span>
                 <strong
                   className={
-                    user?.is_active ? "status-active-text" : "status-inactive-text"
+                    user?.is_active
+                      ? "status-active-text"
+                      : "status-inactive-text"
                   }
                 >
                   {user?.is_active ? "Aktif" : "Tidak Aktif"}
@@ -95,22 +111,57 @@ function DashboardPage() {
             <div className="summary-card">
               <h3>Panduan Singkat</h3>
 
-              <div className="guide-list">
-                <div className="guide-item">
-                  <span>1</span>
-                  <p>Buka menu Kandidat untuk melihat seluruh data kandidat.</p>
-                </div>
+              {!canManage ? (
+                <div className="guide-list">
+                  <div className="guide-item">
+                    <span>1</span>
+                    <p>
+                      Buka menu Kandidat untuk melihat seluruh kandidat yang
+                      tersedia.
+                    </p>
+                  </div>
 
-                <div className="guide-item">
-                  <span>2</span>
-                  <p>Gunakan tombol Tambah Kandidat untuk menambahkan data baru.</p>
-                </div>
+                  <div className="guide-item">
+                    <span>2</span>
+                    <p>
+                      Pilih kandidat yang sesuai, lalu lakukan voting pada menu
+                      Voting.
+                    </p>
+                  </div>
 
-                <div className="guide-item">
-                  <span>3</span>
-                  <p>Gunakan menu Edit dan Hapus untuk mengelola data kandidat.</p>
+                  <div className="guide-item">
+                    <span>3</span>
+                    <p>
+                      Lihat hasil pemilihan melalui menu Hasil Voting.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="guide-list">
+                  <div className="guide-item">
+                    <span>1</span>
+                    <p>
+                      Buka menu Kandidat untuk melihat seluruh data kandidat.
+                    </p>
+                  </div>
+
+                  <div className="guide-item">
+                    <span>2</span>
+                    <p>
+                      Gunakan tombol Tambah Kandidat untuk menambahkan data
+                      baru.
+                    </p>
+                  </div>
+
+                  <div className="guide-item">
+                    <span>3</span>
+                    <p>
+                      Gunakan menu Edit dan Hapus untuk mengelola data
+                      kandidat.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
