@@ -9,6 +9,8 @@ import CandidateDetailPage from "./components/CandidateDetailPage";
 import AboutPage from "./components/AboutPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./context/ThemeContext";
+import VotingPage from "./components/VotingPage";
+import VoteResultsPage from "./components/VoteResultsPage";
 
 function App() {
   return (
@@ -23,7 +25,9 @@ function App() {
           <Route path="/candidates/create" element={<CandidateFormPage />} />
           <Route path="/candidates/:id" element={<CandidateDetailPage />} />
           <Route path="/candidates/:id/edit" element={<CandidateFormPage />} />
+          <Route path="/voting" element={<VotingPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/vote-results" element={<VoteResultsPage />} />
         </Routes>
       </ThemeProvider>
     </ErrorBoundary>

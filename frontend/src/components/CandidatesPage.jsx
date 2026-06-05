@@ -1,22 +1,26 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdminNavbar from "./AdminNavbar";
-import Toast from "./Toast";
 import ConfirmModal from "./ConfirmModal";
+import Toast from "./Toast";
 import {
+  deleteCandidate,
   getAdminCandidates,
   getPublicCandidates,
-  deleteCandidate,
 } from "../services/api";
 import { canManageCandidates } from "../utils/auth";
 
 function CandidatesPage() {
   const navigate = useNavigate();
-  const canManage = canManageCandidates();
+
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
+  const [selectedCandidateId, setSelectedCandidateId] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [toast, setToast] = useState({
     show: false,
@@ -24,12 +28,9 @@ function CandidatesPage() {
     message: "",
   });
 
-  const [deleteModal, setDeleteModal] = useState({
-    show: false,
-    candidateId: null,
-  });
+  const canManage = canManageCandidates();
 
-  const showToast = (type, message) => {
+  const showToast = useCallback((type, message) => {
     setToast({
       show: true,
       type,
@@ -43,7 +44,7 @@ function CandidatesPage() {
         message: "",
       });
     }, 2500);
-  };
+  }, []);
 
   const closeToast = () => {
     setToast({
@@ -54,30 +55,38 @@ function CandidatesPage() {
   };
 
   const fetchCandidates = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError("");
+    setLoading(true);
+    setError("");
 
+    try {
       const data = canManage
-      ? await getAdminCandidates()
-      : await getPublicCandidates();
-    
+        ? await getAdminCandidates()
+        : await getPublicCandidates();
+
       setCandidates(data || []);
     } catch (err) {
       if (err.message === "UNAUTHORIZED") {
         setError("Sesi berakhir. Silakan login ulang.");
-        navigate("/login");
+
+        setTimeout(() => {
+          navigate("/login");
+        }, 800);
       } else {
-        setError(err.message || "Gagal mengambil data kandidat");
+        setError(err.message || "Gagal mengambil data kandidat.");
       }
     } finally {
       setLoading(false);
     }
-  }, [navigate, canManage]);
+  }, [canManage, navigate]);
 
   useEffect(() => {
+    if (!localStorage.getItem("token")) {
+      navigate("/login");
+      return;
+    }
+
     fetchCandidates();
-  }, [fetchCandidates]);
+  }, [fetchCandidates, navigate]);
 
   const filteredCandidates = useMemo(() => {
     const keyword = searchTerm.toLowerCase().trim();
@@ -90,34 +99,54 @@ function CandidatesPage() {
         candidate.nim?.toLowerCase().includes(keyword) ||
         candidate.email?.toLowerCase().includes(keyword) ||
         candidate.posisi?.toLowerCase().includes(keyword) ||
-        candidate.fakultas?.toLowerCase().includes(keyword)
+        candidate.prodi?.toLowerCase().includes(keyword) ||
+        candidate.jurusan?.toLowerCase().includes(keyword) ||
+        candidate.fakultas?.toLowerCase().includes(keyword) ||
+        candidate.visi?.toLowerCase().includes(keyword)
       );
     });
   }, [candidates, searchTerm]);
 
-  const openDeleteModal = (id) => {
-    setDeleteModal({
-      show: true,
-      candidateId: id,
-    });
+  const openDeleteModal = (candidateId) => {
+    setSelectedCandidateId(candidateId);
+    setShowDeleteModal(true);
   };
 
   const closeDeleteModal = () => {
-    setDeleteModal({
-      show: false,
-      candidateId: null,
-    });
+    if (deleteLoading) return;
+
+    setSelectedCandidateId(null);
+    setShowDeleteModal(false);
   };
 
-  const handleDelete = async () => {
+  const handleDeleteCandidate = async () => {
+    if (!selectedCandidateId) return;
+
+    setDeleteLoading(true);
+
     try {
-      await deleteCandidate(deleteModal.candidateId);
-      closeDeleteModal();
+      await deleteCandidate(selectedCandidateId);
+
+      setCandidates((prevCandidates) =>
+        prevCandidates.filter(
+          (candidate) => candidate.id !== selectedCandidateId
+        )
+      );
+
       showToast("success", "Kandidat berhasil dihapus.");
-      fetchCandidates();
-    } catch (err) {
       closeDeleteModal();
-      showToast("error", err.message || "Gagal menghapus kandidat.");
+    } catch (err) {
+      if (err.message === "UNAUTHORIZED") {
+        showToast("error", "Sesi berakhir. Silakan login ulang.");
+
+        setTimeout(() => {
+          navigate("/login");
+        }, 900);
+      } else {
+        showToast("error", err.message || "Gagal menghapus kandidat.");
+      }
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -133,50 +162,55 @@ function CandidatesPage() {
       />
 
       <ConfirmModal
-        show={deleteModal.show}
-        title="Hapus Kandidat"
-        message="Apakah kamu yakin ingin menghapus kandidat ini? Tindakan ini tidak bisa dibatalkan."
-        confirmText="Hapus"
+        show={showDeleteModal}
+        title="Konfirmasi Hapus"
+        message="Apakah kamu yakin ingin menghapus kandidat ini? Data yang dihapus tidak dapat dikembalikan."
+        confirmText={deleteLoading ? "Menghapus..." : "Hapus"}
         cancelText="Batal"
-        onConfirm={handleDelete}
+        onConfirm={handleDeleteCandidate}
         onCancel={closeDeleteModal}
       />
 
       <div className="candidates-page">
-        <div className="candidate-hero">
+        <section className="candidate-hero">
           <div>
             <span className="candidate-badge">
-              {canManage ? "Manajemen Kandidat" : "Daftar Kandidat"}
+              {canManage ? "Manajemen Kandidat" : "Informasi Kandidat"}
             </span>
 
-            <h1>{canManage ? "Kelola Kandidat" : "Kandidat SIPILIH"}</h1>
+            <h1>{canManage ? "Kelola Kandidat" : "Daftar Kandidat"}</h1>
 
             <p>
               {canManage
-                ? "Kelola seluruh data kandidat SIPILIH dengan tampilan yang lebih rapi, terstruktur, dan mudah diakses."
-                : "Lihat profil kandidat SIPILIH sebelum menentukan pilihanmu."}
+                ? "Kelola seluruh data kandidat SIPILIH. Admin dapat menambah, mengedit, dan menghapus kandidat."
+                : "Pelajari profil, visi, misi, dan inovasi kandidat sebelum melakukan voting."}
             </p>
           </div>
 
-          {canManage && (
-            <Link
-              to="/candidates/create"
-              className="btn btn-primary candidate-add-btn"
-            >
-              + Tambah Kandidat
-            </Link>
-          )}
-        </div>
+          <div className="candidate-hero-actions">
+            {canManage ? (
+              <Link to="/candidates/create" className="btn btn-primary">
+                + Tambah Kandidat
+              </Link>
+            ) : (
+              <Link to="/voting" className="btn btn-primary">
+                Mulai Voting
+              </Link>
+            )}
+          </div>
+        </section>
 
-        <div className="candidate-table-card">
+        <section className="candidate-table-card">
           <div className="candidate-table-top">
             <div className="candidate-table-header">
               <div>
-                <h3>Data Kandidat</h3>
+                <h3>
+                  {canManage ? "Data Kandidat" : "Profil Kandidat SIPILIH"}
+                </h3>
                 <p>
                   {loading
-                    ? "Sedang memuat data..."
-                    : `${filteredCandidates.length} kandidat ditemukan`}
+                    ? "Sedang memuat data kandidat..."
+                    : `${filteredCandidates.length} kandidat tersedia`}
                 </p>
               </div>
             </div>
@@ -184,7 +218,7 @@ function CandidatesPage() {
             <div className="candidate-search-box">
               <input
                 type="text"
-                placeholder="Cari nama, NIM, email, posisi..."
+                placeholder="Cari nama, NIM, posisi, prodi..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -203,11 +237,13 @@ function CandidatesPage() {
             </div>
           ) : candidates.length === 0 ? (
             <div className="candidate-empty-state">
-              <h4>Belum ada data kandidat</h4>
+              <h4>Belum ada kandidat</h4>
               <p>
-                Tambahkan kandidat pertama untuk mulai mengelola pemilihan pada
-                sistem SIPILIH.
+                {canManage
+                  ? "Silakan tambahkan kandidat terlebih dahulu."
+                  : "Saat ini belum ada kandidat yang dapat ditampilkan."}
               </p>
+
               {canManage && (
                 <Link to="/candidates/create" className="btn btn-primary">
                   Tambah Kandidat
@@ -226,14 +262,15 @@ function CandidatesPage() {
               <table className="candidate-table">
                 <thead>
                   <tr>
-                    <th>Nama</th>
-                    <th>NIM</th>
-                    <th>Email</th>
+                    <th>Kandidat</th>
                     <th>Posisi</th>
-                    <th>Fakultas</th>
+                    <th>Program Studi</th>
+                    <th>Visi</th>
+                    <th>Status</th>
                     <th>Aksi</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {filteredCandidates.map((candidate) => (
                     <tr key={candidate.id}>
@@ -244,17 +281,31 @@ function CandidatesPage() {
                               ? candidate.nama.charAt(0).toUpperCase()
                               : "K"}
                           </div>
+
                           <div>
                             <strong>{candidate.nama}</strong>
+                            <span>{candidate.email}</span>
                           </div>
                         </div>
                       </td>
-                      <td>{candidate.nim}</td>
-                      <td className="candidate-email-cell">
-                        {candidate.email}
+
+                      <td>{candidate.posisi || "-"}</td>
+                      <td>{candidate.prodi || "-"}</td>
+
+                      <td className="candidate-description-cell">
+                        {candidate.visi || "-"}
                       </td>
-                      <td>{candidate.posisi}</td>
-                      <td>{candidate.fakultas}</td>
+
+                      <td>
+                        <span
+                          className={`status-pill status-${
+                            candidate.status || "approved"
+                          }`}
+                        >
+                          {candidate.status || "approved"}
+                        </span>
+                      </td>
+
                       <td>
                         <div className="candidate-action-group">
                           <Link
@@ -263,6 +314,15 @@ function CandidatesPage() {
                           >
                             Detail
                           </Link>
+
+                          {!canManage && (
+                            <Link
+                              to="/voting"
+                              className="action-btn action-btn-edit"
+                            >
+                              Mulai Voting
+                            </Link>
+                          )}
 
                           {canManage && (
                             <>
@@ -290,7 +350,7 @@ function CandidatesPage() {
               </table>
             </div>
           )}
-        </div>
+        </section>
       </div>
     </>
   );

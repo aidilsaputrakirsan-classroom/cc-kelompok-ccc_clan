@@ -15,6 +15,18 @@ export function clearToken() {
   localStorage.removeItem("user");
 }
 
+export function getStoredUser() {
+  const savedUser = localStorage.getItem("user");
+
+  if (!savedUser) return null;
+
+  try {
+    return JSON.parse(savedUser);
+  } catch {
+    return null;
+  }
+}
+
 function authHeaders() {
   const token = getToken();
   const headers = {};
@@ -32,6 +44,14 @@ async function handleResponse(response) {
     throw new Error("UNAUTHORIZED");
   }
 
+  if (response.status === 403) {
+    throw new Error("FORBIDDEN");
+  }
+
+  if (response.status === 503 || response.status === 504) {
+    throw new Error("Service temporarily unavailable");
+  }
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
 
@@ -45,6 +65,8 @@ async function handleResponse(response) {
       } else if (typeof error.detail === "string") {
         errorMessage = error.detail;
       }
+    } else if (error.message) {
+      errorMessage = error.message;
     }
 
     throw new Error(errorMessage);
@@ -55,11 +77,16 @@ async function handleResponse(response) {
   return response.json();
 }
 
+// =====================
 // AUTH
+// =====================
+
 export async function register(userData) {
   const response = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(userData),
   });
 
@@ -69,7 +96,9 @@ export async function register(userData) {
 export async function login(email, password) {
   const response = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({ email, password }),
   });
 
@@ -80,7 +109,10 @@ export async function login(email, password) {
   }
 
   setToken(data.access_token);
-  localStorage.setItem("user", JSON.stringify(data.user));
+
+  if (data.user) {
+    localStorage.setItem("user", JSON.stringify(data.user));
+  }
 
   return data;
 }
@@ -93,14 +125,23 @@ export async function getMe() {
     },
   });
 
-  return handleResponse(response);
+  const data = await handleResponse(response);
+
+  if (data) {
+    localStorage.setItem("user", JSON.stringify(data));
+  }
+
+  return data;
 }
 
 export async function logout() {
   clearToken();
 }
 
+// =====================
 // CANDIDATES
+// =====================
+
 export async function getPublicCandidates() {
   const response = await fetch(`${API_URL}/candidates`, {
     method: "GET",
@@ -118,6 +159,11 @@ export async function getAdminCandidates() {
   });
 
   return handleResponse(response);
+}
+
+export async function getCandidateById(id) {
+  const candidates = await getPublicCandidates();
+  return candidates.find((candidate) => String(candidate.id) === String(id));
 }
 
 export async function createCandidate(candidateData) {
@@ -157,6 +203,36 @@ export async function deleteCandidate(id) {
   return handleResponse(response);
 }
 
+// =====================
+// VOTING
+// =====================
+
+export async function voteCandidate(candidateId) {
+  const response = await fetch(`${API_URL}/vote/${candidateId}`, {
+    method: "POST",
+    headers: {
+      ...authHeaders(),
+    },
+  });
+
+  return handleResponse(response);
+}
+
+export async function getVoteResults() {
+  const response = await fetch(`${API_URL}/vote/results`, {
+    method: "GET",
+    headers: {
+      ...authHeaders(),
+    },
+  });
+
+  return handleResponse(response);
+}
+
+// =====================
+// HEALTH CHECK
+// =====================
+
 export async function checkHealth() {
   try {
     const response = await fetch(`${API_URL}/health`);
@@ -169,3 +245,5 @@ export async function checkHealth() {
     return false;
   }
 }
+
+export { API_URL };
