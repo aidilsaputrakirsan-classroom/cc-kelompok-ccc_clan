@@ -1,17 +1,73 @@
-# Production overrides — gunakan dengan:
-# docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# docker-compose.prod.yml — Production overrides
+# Cara pakai: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 services:
+  db:
+    restart: always
+    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+  auth-db:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+  candidate-db:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
   backend:
+    restart: always
     environment:
       - DEBUG=false
-      - CORS_ORIGINS=https://yourdomain.com
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1G
+
+  auth-service:
     restart: always
+    # Tidak expose port langsung di production — akses via gateway
+    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+  candidate-service:
+    restart: always
+    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
 
   frontend:
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
-  db:
+  gateway:
     restart: always
-    # Tidak expose port ke host di production
-    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
