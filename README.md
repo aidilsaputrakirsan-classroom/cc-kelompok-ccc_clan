@@ -1,5 +1,7 @@
 # ☁️ Cloud App - SIPILIH (Sistem Informasi Pemilihan Digital)
 
+![CI Pipeline](https://github.com/cc-kelompok/ccc_clan/actions/workflows/ci.yml/badge.svg)
+
 Deskripsi : 
 SIPILIH (Sistem Informasi Pemilihan Digital) merupakan platform berbasis web yang dirancang untuk mendukung proses pemilihan elektronik (_e-voting_) di lingkungan kampus, seperti pemilihan Ketua BEM, Himpunan Mahasiswa, maupun organisasi kemahasiswaan lainnya. Sistem ini bertujuan untuk menghadirkan proses pemungutan suara yang aman, transparan, dan terstruktur melalui mekanisme autentikasi akun mahasiswa. SIPILIH menyediakan berbagai fitur Utama seperti manajemen kandidat, pengaturan periode pemilihan, serta monitoring partisipasi pemilih. Selainn itu, sistem ini juga dilengkapi dengan dashboard hasil perolehan suara secara real-time yang disajikan dalam bentuk grafik persentase, sehingga memudahkan dalam proses evaluasi dan pengambilan keputusan. 
 
