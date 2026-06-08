@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Header
+from fastapi import FastAPI, Depends, HTTPException, Header, Request
 from sqlalchemy.orm import Session
 
 from database import Base, engine, get_db
@@ -17,10 +17,24 @@ from auth import (
     decode_token
 )
 
+import logging
+from logging_config import (setup_logging)
+from logging_middleware import (RequestLoggingMiddleware)
+from metrics import metrics
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Auth Service")
 
+setup_logging()
+
+logger = logging.getLogger(
+    __name__
+)
+
+app.add_middleware(
+    RequestLoggingMiddleware
+)
 
 # ================= HEALTH =================
 
@@ -117,6 +131,7 @@ def login(
     response_model=VerifyResponse
 )
 def verify_token(
+    request: Request,
     authorization: str = Header(...)
 ):
     if not authorization.startswith(
@@ -137,4 +152,17 @@ def verify_token(
     return {
         "user_id": int(payload["sub"]),
         "role": payload["role"]
+    }
+
+
+# ================= METRICS =================
+
+@app.get("/metrics")
+def get_metrics():
+
+    return {
+        "service":
+            "auth-service",
+
+        **metrics.get_metrics()
     }
