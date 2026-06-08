@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from database import Base, engine, get_db
 from models import Candidate
@@ -9,23 +10,68 @@ from schemas import (
     CandidateResponse,
     CandidateStatsResponse
 )
+from typing import Optional
+from auth_client import verify_token, auth_circuit
 
-from auth_client import verify_token
+import logging
+
+from logging_config import setup_logging
+from logging_middleware import RequestLoggingMiddleware
+from metrics import metrics
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Candidate Service")
 
+setup_logging()
+
+logger = logging.getLogger(__name__)
+
+app.add_middleware(
+    RequestLoggingMiddleware
+)
+
+
 
 # ================= HEALTH =================
 
 @app.get("/health")
-def health():
-    return {
-        "status": "healthy",
-        "service": "candidate-service"
-    }
+def health_check():
 
+    db_status = "connected"
+
+    try:
+
+        db = next(get_db())
+
+        db.execute(text("SELECT 1"))
+
+        db.close()
+
+    except Exception:
+
+        db_status = "disconnected"
+
+    auth_status = auth_circuit.get_status()
+
+    overall = "healthy"
+
+    if auth_status["state"] != "CLOSED":
+        overall = "degraded"
+
+    if db_status != "connected":
+        overall = "unhealthy"
+
+    return {
+        "status": overall,
+        "service": "candidate-service",
+        "dependencies": {
+            "auth-service": auth_status,
+            "database": {
+                "status": db_status
+            }
+        }
+    }
 
 # ================= PUBLIC =================
 
@@ -34,11 +80,22 @@ def health():
     response_model=list[CandidateResponse]
 )
 def get_candidates(
+    position: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
+
+    query = db.query(Candidate)
+
+    if position:
+        query = query.filter(
+            Candidate.posisi == position
+        )
+
     return (
-        db.query(Candidate)
-        .order_by(Candidate.created_at.desc())
+        query
+        .order_by(
+            Candidate.created_at.desc()
+        )
         .all()
     )
 
@@ -188,7 +245,7 @@ async def list_candidates(
     )
 
 
-# ================= MODULE 12 =================
+# ================= STATUS KANDIDAT =================
 
 @app.get(
     "/candidates/stats",
@@ -221,4 +278,63 @@ def candidate_stats(
         "total_candidates": total,
         "approved_candidates": approved,
         "pending_candidates": pending
+    }
+
+
+@app.get(
+    "/candidates/{candidate_id}",
+    response_model=CandidateResponse
+)
+def get_candidate_detail(
+    candidate_id: int,
+    db: Session = Depends(get_db)
+):
+    candidate = (
+        db.query(Candidate)
+        .filter(
+            Candidate.id == candidate_id
+        )
+        .first()
+    )
+
+    if not candidate:
+        raise HTTPException(
+            status_code=404,
+            detail="Candidate not found"
+        )
+
+    return candidate
+
+
+# ================= Posisi Kandidat =================
+
+@app.get("/positions")
+def get_positions(
+    db: Session = Depends(get_db)
+):
+
+    positions = (
+        db.query(Candidate.posisi)
+        .distinct()
+        .all()
+    )
+
+    return {
+        "positions": [
+            p[0]
+            for p in positions
+        ]
+    }
+
+
+# ================= METRICS =================
+
+@app.get("/metrics")
+def get_metrics():
+
+    return {
+        "service":
+            "candidate-service",
+
+        **metrics.get_metrics()
     }
