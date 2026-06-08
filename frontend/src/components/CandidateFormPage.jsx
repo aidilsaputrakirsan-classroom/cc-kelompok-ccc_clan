@@ -2,19 +2,40 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import AdminNavbar from "./AdminNavbar";
 import Toast from "./Toast";
-import { canManageCandidates } from "../utils/auth";
 import {
   createCandidate,
   getAdminCandidates,
   updateCandidate,
 } from "../services/api";
 
+const POSITION_OPTIONS = [
+  {
+    value: "ketua bem km",
+    label: "Ketua BEM KM",
+  },
+  {
+    value: "dpm km",
+    label: "DPM KM",
+  },
+  {
+    value: "ketua bem fakultas",
+    label: "Ketua BEM Fakultas",
+  },
+  {
+    value: "dpm fakultas",
+    label: "DPM Fakultas",
+  },
+  {
+    value: "ketua himpunan",
+    label: "Ketua Himpunan",
+  },
+];
+
 function CandidateFormPage() {
   const navigate = useNavigate();
   const { id } = useParams();
 
   const isEditMode = Boolean(id);
-  const canManage = canManageCandidates();
 
   const [step, setStep] = useState(1);
 
@@ -66,13 +87,7 @@ function CandidateFormPage() {
   };
 
   useEffect(() => {
-    if (!canManage) {
-      navigate("/candidates", { replace: true });
-    }
-  }, [canManage, navigate]);
-
-  useEffect(() => {
-    if (!canManage || !isEditMode) return;
+    if (!isEditMode) return;
 
     const fetchCandidateForEdit = async () => {
       try {
@@ -96,7 +111,7 @@ function CandidateFormPage() {
           prodi: selectedCandidate.prodi || "",
           jurusan: selectedCandidate.jurusan || "",
           fakultas: selectedCandidate.fakultas || "",
-          posisi: selectedCandidate.posisi || "",
+          posisi: selectedCandidate.posisi?.toLowerCase() || "",
           visi: selectedCandidate.visi || "",
           misi: selectedCandidate.misi || "",
           inovasi: selectedCandidate.inovasi || "",
@@ -109,7 +124,7 @@ function CandidateFormPage() {
     };
 
     fetchCandidateForEdit();
-  }, [id, isEditMode, canManage]);
+  }, [id, isEditMode]);
 
   const handleChange = (e) => {
     setForm({
@@ -128,12 +143,6 @@ function CandidateFormPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!canManage) {
-      navigate("/candidates", { replace: true });
-      return;
-    }
-
     setLoading(true);
     setError("");
 
@@ -161,10 +170,6 @@ function CandidateFormPage() {
       setLoading(false);
     }
   };
-
-  if (!canManage) {
-    return null;
-  }
 
   return (
     <>
@@ -201,9 +206,7 @@ function CandidateFormPage() {
               <div className="form-step-tabs">
                 <button
                   type="button"
-                  className={
-                    step === 1 ? "step-tab step-tab-active" : "step-tab"
-                  }
+                  className={step === 1 ? "step-tab step-tab-active" : "step-tab"}
                   onClick={() => setStep(1)}
                 >
                   1. Biodata Kandidat
@@ -211,9 +214,7 @@ function CandidateFormPage() {
 
                 <button
                   type="button"
-                  className={
-                    step === 2 ? "step-tab step-tab-active" : "step-tab"
-                  }
+                  className={step === 2 ? "step-tab step-tab-active" : "step-tab"}
                   onClick={() => setStep(2)}
                 >
                   2. Visi, Misi, Inovasi
@@ -260,14 +261,19 @@ function CandidateFormPage() {
                       </div>
 
                       <div className="form-group">
-                        <label>Posisi</label>
-                        <input
-                          type="text"
+                        <label>Posisi yang Didaftarkan</label>
+                        <select
                           name="posisi"
-                          placeholder="Masukkan posisi"
                           value={form.posisi}
                           onChange={handleChange}
-                        />
+                        >
+                          <option value="">Pilih posisi kandidat</option>
+                          {POSITION_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
 
@@ -374,8 +380,8 @@ function CandidateFormPage() {
                             ? "Menyimpan perubahan..."
                             : "Menyimpan..."
                           : isEditMode
-                            ? "Update Kandidat"
-                            : "Simpan Kandidat"}
+                          ? "Update Kandidat"
+                          : "Simpan Kandidat"}
                       </button>
                     </div>
                   </div>

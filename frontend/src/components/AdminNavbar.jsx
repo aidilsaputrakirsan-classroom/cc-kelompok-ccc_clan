@@ -67,12 +67,14 @@ function AdminNavbar() {
             Kandidat
           </Link>
 
-          <Link
-            to="/voting"
-            className={location.pathname === "/voting" ? "nav-active" : ""}
-          >
+          {!canManage && (
+            <Link
+              to="/voting"
+              className={location.pathname === "/voting" ? "nav-active" : ""}
+            >
             Voting
-          </Link>
+            </Link>
+          )}
 
           <Link
             to="/vote-results"
@@ -108,7 +110,7 @@ function AdminNavbar() {
           )}
         </div>
 
-        <div className="admin-navbar-right">\
+        <div className="admin-navbar-right">
         <span className="role-pill">{role}</span>
         
           <button
