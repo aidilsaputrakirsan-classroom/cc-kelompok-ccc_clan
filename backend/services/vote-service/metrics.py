@@ -4,7 +4,9 @@ import time
 class Metrics:
 
     def __init__(self):
+
         self.start_time = time.time()
+
         self.total_requests = 0
         self.total_errors = 0
 
@@ -33,6 +35,7 @@ class Metrics:
             )
 
         return {
+
             "uptime_seconds":
                 round(
                     time.time()

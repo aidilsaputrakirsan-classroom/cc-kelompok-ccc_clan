@@ -71,9 +71,6 @@ async def _call_auth_service(
 
             if attempt < MAX_RETRIES:
 
-                delay = BASE_DELAY * (
-                    2 ** (attempt - 1)
-                )
                 delay = BASE_DELAY * (2 ** (attempt - 1))
 
                 await asyncio.sleep(delay)
@@ -89,6 +86,7 @@ async def _call_auth_service(
 async def verify_token(
     authorization: str = Header(...)
 ):
+
     if not authorization.startswith("Bearer "):
 
         raise HTTPException(

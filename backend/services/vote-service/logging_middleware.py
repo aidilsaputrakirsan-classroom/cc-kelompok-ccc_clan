@@ -36,22 +36,6 @@ class RequestLoggingMiddleware(
             request
         )
 
-        try:
-
-            response = await call_next(
-                request
-            )
-
-        except Exception:
-
-            logger.exception(
-                "Unhandled exception",
-                extra={
-                    "correlation_id":
-                        correlation_id
-                }
-            )
-
         duration_ms = round(
             (
                 time.time()

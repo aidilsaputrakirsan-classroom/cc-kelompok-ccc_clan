@@ -18,8 +18,9 @@ from auth import (
 )
 
 import logging
-from logging_config import (setup_logging)
-from logging_middleware import (RequestLoggingMiddleware)
+
+from logging_config import setup_logging
+from logging_middleware import RequestLoggingMiddleware
 from metrics import metrics
 
 Base.metadata.create_all(bind=engine)
@@ -28,9 +29,7 @@ app = FastAPI(title="Auth Service")
 
 setup_logging()
 
-logger = logging.getLogger(
-    __name__
-)
+logger = logging.getLogger(__name__)
 
 app.add_middleware(
     RequestLoggingMiddleware
@@ -161,6 +160,8 @@ def verify_token(
 def get_metrics():
 
     return {
+        "service": "auth-service",
+
         "service":
             "auth-service",
 
