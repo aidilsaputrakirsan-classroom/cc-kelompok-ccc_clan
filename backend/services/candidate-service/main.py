@@ -16,14 +16,48 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Candidate Service")
 
+from sqlalchemy import text
+from auth_client import auth_circuit
+
 
 # ================= HEALTH =================
 
 @app.get("/health")
-def health():
+def health_check():
+
+    db_status = "connected"
+
+    try:
+
+        db = next(get_db())
+
+        db.execute(text("SELECT 1"))
+
+        db.close()
+
+    except Exception:
+
+        db_status = "disconnected"
+
+    auth_status = auth_circuit.get_status()
+
+    overall = "healthy"
+
+    if auth_status["state"] != "CLOSED":
+        overall = "degraded"
+
+    if db_status != "connected":
+        overall = "unhealthy"
+
     return {
-        "status": "healthy",
-        "service": "candidate-service"
+        "status": overall,
+        "service": "candidate-service",
+        "dependencies": {
+            "auth-service": auth_status,
+            "database": {
+                "status": db_status
+            }
+        }
     }
 
 
