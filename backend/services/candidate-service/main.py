@@ -12,12 +12,21 @@ from schemas import (
 
 from auth_client import verify_token
 
+import logging
+from logging_config import (setup_logging)
+from logging_middleware import (RequestLoggingMiddleware)
+from metrics import metrics
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Candidate Service")
 
 from sqlalchemy import text
 from auth_client import auth_circuit
+
+setup_logging()
+logger = logging.getLogger(__name__)
+app.add_middleware(RequestLoggingMiddleware)
 
 
 # ================= HEALTH =================
@@ -255,4 +264,17 @@ def candidate_stats(
         "total_candidates": total,
         "approved_candidates": approved,
         "pending_candidates": pending
+    }
+
+
+# ================= METRICS =================
+
+@app.get("/metrics")
+def get_metrics():
+
+    return {
+        "service":
+            "candidate-service",
+
+        **metrics.get_metrics()
     }
