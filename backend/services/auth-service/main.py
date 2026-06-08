@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Header
+from fastapi import FastAPI, Depends, HTTPException, Header, Request
 from sqlalchemy.orm import Session
 
 from database import Base, engine, get_db
@@ -130,6 +130,7 @@ def login(
     response_model=VerifyResponse
 )
 def verify_token(
+    request: Request,
     authorization: str = Header(...)
 ):
     if not authorization.startswith(
@@ -160,5 +161,9 @@ def get_metrics():
 
     return {
         "service": "auth-service",
+
+        "service":
+            "auth-service",
+
         **metrics.get_metrics()
     }

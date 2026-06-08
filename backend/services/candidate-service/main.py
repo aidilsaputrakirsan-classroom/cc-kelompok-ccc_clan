@@ -10,8 +10,13 @@ from schemas import (
     CandidateResponse,
     CandidateStatsResponse
 )
+
 from typing import Optional
-from auth_client import verify_token, auth_circuit
+
+from auth_client import (
+    verify_token,
+    auth_circuit
+)
 
 import logging
 
@@ -30,7 +35,6 @@ logger = logging.getLogger(__name__)
 app.add_middleware(
     RequestLoggingMiddleware
 )
-
 
 
 # ================= HEALTH =================
@@ -325,6 +329,7 @@ def get_positions(
             for p in positions
         ]
     }
+
 
 
 # ================= METRICS =================
