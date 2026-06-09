@@ -156,19 +156,17 @@ jobs:
             echo "    HTTP Status : $HTTP_STATUS"
             echo "    Response    : $(cat /tmp/health_response.json)"
 
-            # Cek status code 200
             if [ "$HTTP_STATUS" != "200" ]; then
               echo "    ❌ Status bukan 200, coba lagi dalam ${DELAY}s..."
               sleep $DELAY
               continue
             fi
 
-            # Cek isi response mengandung "ok" (FIXED dari "healthy")
             HEALTH_STATUS=$(cat /tmp/health_response.json | python3 -c \
               "import sys, json; d=json.load(sys.stdin); print(d.get('status',''))" 2>/dev/null || echo "")
 
-            if [ "$HEALTH_STATUS" != "ok" ]; then
-              echo "    ❌ Response status bukan 'ok' (dapat: '$HEALTH_STATUS'), coba lagi..."
+            if [ "$HEALTH_STATUS" != "healthy" ]; then
+              echo "    ❌ Response status bukan 'healthy' (dapat: '$HEALTH_STATUS'), coba lagi..."
               sleep $DELAY
               continue
             fi
@@ -177,7 +175,6 @@ jobs:
             exit 0
           done
 
-          # Semua retry habis → gagalkan workflow
           echo ""
           echo "❌❌❌ HEALTH CHECK GAGAL setelah $MAX_RETRY percobaan!"
           echo "    URL    : $BACKEND_URL/health"
