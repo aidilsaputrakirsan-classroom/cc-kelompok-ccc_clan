@@ -182,4 +182,4 @@ services:
 volumes:
   postgres_data:
   auth_db_data:
-  candidate_db_data:
+  candidate_db_data:  docker-compose logs --no-color auth-service backend --tail=200
