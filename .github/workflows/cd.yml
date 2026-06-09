@@ -5,12 +5,13 @@
 # ==============================================
 #
 # Workflow ini berjalan otomatis saat push ke main (setelah CI pass).
-#
+# Pull docker images dari Docker Hub (hasil CI) → Deploy ke production
+# 
 # Jobs:
-#   deploy-backend   : Deploy backend ke Railway/Render
-#   deploy-frontend  : Deploy frontend ke Railway/Render
+#   deploy-backend   : Pull & restart backend container
+#   deploy-frontend  : Pull & restart frontend container
 #   health-check     : Panggil /health endpoint, gagal jika tidak healthy
-#   notify-deploy    : Ringkasan deployment sebagai PR comment / output
+#   notify-deploy    : Ringkasan deployment sebagai output log
 
 name: CD Pipeline
 
@@ -27,7 +28,7 @@ jobs:
 
   # ================================================================
   # JOB 1: Deploy Backend
-  # Sesuaikan dengan platform yang digunakan (Railway / Render)
+  # Pull image dari Docker Hub (hasil CI) → SSH deploy ke production
   # ================================================================
   deploy-backend:
     name: 🚀 Deploy Backend
@@ -41,18 +42,31 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # ── Jika pakai Railway ──────────────────────────────────────
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy Backend to Railway
+      - name: Deploy Backend via SSH
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DOCKER_IMAGE: bentosaputra/sipilih-backend:latest
         run: |
-          railway up --service backend --detach
-          echo "✅ Backend deployed"
+          # Setup SSH key
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts 2>/dev/null
+          
+          echo "🚀 Deploying backend to $DEPLOY_HOST..."
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+            set -e
+            echo "📥 Pulling latest backend image..."
+            docker pull $DOCKER_IMAGE
+            
+            echo "🔄 Restarting backend container..."
+            docker-compose -f /app/docker-compose.prod.yml up -d backend
+            
+            echo "✅ Backend deployed successfully"
+          EOF
 
-      # Set URL output untuk dipakai job berikutnya
       - name: Set backend URL
         id: set-url
         run: echo "url=https://backendcc-kelompok-cccclan-production.up.railway.app" >> $GITHUB_OUTPUT
@@ -73,15 +87,30 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy Frontend to Railway
+      - name: Deploy Frontend via SSH
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DOCKER_IMAGE: bentosaputra/sipilih-frontend:latest
         run: |
-          railway up --service frontend --detach
-          echo "✅ Frontend deployed"
+          # Setup SSH key
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts 2>/dev/null
+          
+          echo "🚀 Deploying frontend to $DEPLOY_HOST..."
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+            set -e
+            echo "📥 Pulling latest frontend image..."
+            docker pull $DOCKER_IMAGE
+            
+            echo "🔄 Restarting frontend container..."
+            docker-compose -f /app/docker-compose.prod.yml up -d frontend
+            
+            echo "✅ Frontend deployed successfully"
+          EOF
 
       - name: Set frontend URL
         id: set-url
@@ -93,9 +122,8 @@ jobs:
   #
   # - Panggil GET /health setelah deploy backend selesai
   # - Retry hingga 5x dengan jeda 15 detik (tunggu app ready)
-  # - Verifikasi response: status 200 + body {"status":"healthy"}
-  # - Jika gagal setelah semua retry → workflow GAGAL (alert otomatis
-  #   muncul di GitHub dan PR tidak bisa merge)
+  # - Verifikasi response: status 200 + body {"status":"ok"}  ← FIXED: "ok" bukan "healthy"
+  # - Jika gagal setelah semua retry → workflow GAGAL
   # ================================================================
   health-check:
     name: 🏥 Health Check
@@ -135,12 +163,12 @@ jobs:
               continue
             fi
 
-            # Cek isi response mengandung "healthy"
+            # Cek isi response mengandung "ok" (FIXED dari "healthy")
             HEALTH_STATUS=$(cat /tmp/health_response.json | python3 -c \
               "import sys, json; d=json.load(sys.stdin); print(d.get('status',''))" 2>/dev/null || echo "")
 
-            if [ "$HEALTH_STATUS" != "healthy" ]; then
-              echo "    ❌ Response status bukan 'healthy' (dapat: '$HEALTH_STATUS'), coba lagi..."
+            if [ "$HEALTH_STATUS" != "ok" ]; then
+              echo "    ❌ Response status bukan 'ok' (dapat: '$HEALTH_STATUS'), coba lagi..."
               sleep $DELAY
               continue
             fi
