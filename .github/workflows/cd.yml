@@ -61,8 +61,15 @@ jobs:
             echo "📥 Pulling latest backend image..."
             docker pull $DOCKER_IMAGE
             
-            echo "🔄 Restarting backend container..."
-            docker-compose -f /app/docker-compose.prod.yml up -d backend
+            echo "� Debug remote path and compose files"
+            pwd
+            ls -la
+            ls -la docker-compose.yml docker-compose.prod.yml || true
+            docker compose version || true
+            
+            echo "�🔄 Restarting backend container..."
+            cd /app
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d backend
             
             echo "✅ Backend deployed successfully"
           EOF
@@ -106,8 +113,15 @@ jobs:
             echo "📥 Pulling latest frontend image..."
             docker pull $DOCKER_IMAGE
             
-            echo "🔄 Restarting frontend container..."
-            docker-compose -f /app/docker-compose.prod.yml up -d frontend
+            echo "� Debug remote path and compose files"
+            pwd
+            ls -la
+            ls -la docker-compose.yml docker-compose.prod.yml || true
+            docker compose version || true
+            
+            echo "�🔄 Restarting frontend container..."
+            cd /app
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d frontend
             
             echo "✅ Frontend deployed successfully"
           EOF
