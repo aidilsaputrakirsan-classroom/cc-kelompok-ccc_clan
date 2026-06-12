@@ -1,9 +1,12 @@
-from pydantic import BaseModel
-from datetime import datetime
+from pydantic import BaseModel, Field
 
 
 class VoteCreate(BaseModel):
-    candidate_id: int
+
+    candidate_id: int = Field(
+        ...,
+        gt=0
+    )
 
 
 class VoteResponse(BaseModel):
