@@ -3,18 +3,30 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logout } from "../services/api";
 import { useTheme } from "../context/UseTheme";
 import ConfirmModal from "./ConfirmModal";
-import { getStoredUser, canManageCandidates, isSuperAdmin } from "../utils/auth";
+import {
+  canManageCandidates,
+  getUserDisplayRole,
+  isSuperAdmin,
+} from "../utils/auth";
 
 function AdminNavbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isDarkMode, toggleDarkMode } = useTheme();
+
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const user = getStoredUser();
-  const role = user?.role || "guest";
+  const role = getUserDisplayRole();
   const canManage = canManageCandidates();
   const superAdmin = isSuperAdmin();
+
+  const isDashboardRoute = location.pathname === "/dashboard";
+  const isCandidatesRoute =
+    location.pathname.startsWith("/candidates") ||
+    location.pathname.startsWith("/admin/candidates");
+  const isVotingRoute = location.pathname === "/voting";
+  const isVoteResultsRoute = location.pathname === "/vote-results";
+  const isManageUsersRoute = location.pathname === "/manage-users";
 
   const openLogoutModal = () => {
     setShowLogoutModal(true);
@@ -53,34 +65,27 @@ function AdminNavbar() {
         <div className="admin-navbar-links">
           <Link
             to="/dashboard"
-            className={location.pathname === "/dashboard" ? "nav-active" : ""}
+            className={isDashboardRoute ? "nav-active" : ""}
           >
             Dashboard
           </Link>
 
           <Link
             to="/candidates"
-            className={
-              location.pathname.startsWith("/candidates") ? "nav-active" : ""
-            }
+            className={isCandidatesRoute ? "nav-active" : ""}
           >
             Kandidat
           </Link>
 
           {!canManage && (
-            <Link
-              to="/voting"
-              className={location.pathname === "/voting" ? "nav-active" : ""}
-            >
-            Voting
+            <Link to="/voting" className={isVotingRoute ? "nav-active" : ""}>
+              Voting
             </Link>
           )}
 
           <Link
             to="/vote-results"
-            className={
-              location.pathname === "/vote-results" ? "nav-active" : ""
-            }
+            className={isVoteResultsRoute ? "nav-active" : ""}
           >
             Hasil Voting
           </Link>
@@ -101,9 +106,7 @@ function AdminNavbar() {
           {superAdmin && (
             <Link
               to="/manage-users"
-              className={
-                location.pathname === "/manage-users" ? "nav-active" : ""
-              }
+              className={isManageUsersRoute ? "nav-active" : ""}
             >
               Manajemen User
             </Link>
@@ -111,8 +114,8 @@ function AdminNavbar() {
         </div>
 
         <div className="admin-navbar-right">
-        <span className="role-pill">{role}</span>
-        
+          <span className="role-pill">{role}</span>
+
           <button
             type="button"
             className="btn btn-outline theme-toggle-btn"
@@ -122,7 +125,11 @@ function AdminNavbar() {
             {isDarkMode ? "☀️ Light" : "🌙 Dark"}
           </button>
 
-          <button className="btn btn-outline" onClick={openLogoutModal}>
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={openLogoutModal}
+          >
             Logout
           </button>
         </div>

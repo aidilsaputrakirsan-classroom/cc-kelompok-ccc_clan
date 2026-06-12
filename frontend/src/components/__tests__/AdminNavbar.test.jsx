@@ -2,33 +2,39 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AdminNavbar from "../AdminNavbar";
+import { ThemeProvider } from "../../context/ThemeContext";
 
 vi.mock("../../services/api", () => ({
   logout: vi.fn(),
 }));
 
-const mockNavigate = vi.fn();
-
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual("react-router-dom");
-
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
-
 function renderAdminNavbar(initialPath = "/dashboard") {
+  localStorage.setItem("token", "dummy-token");
+  localStorage.setItem(
+    "user",
+    JSON.stringify({
+      id: 1,
+      name: "Admin SIPILIH",
+      email: "admin@sipilih.test",
+      role: "admin",
+      is_active: true,
+    })
+  );
+
   return render(
-    <MemoryRouter initialEntries={[initialPath]}>
-      <AdminNavbar />
-    </MemoryRouter>
+    <ThemeProvider>
+      <MemoryRouter initialEntries={[initialPath]}>
+        <AdminNavbar />
+      </MemoryRouter>
+    </ThemeProvider>
   );
 }
 
 describe("AdminNavbar", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+    document.body.className = "";
   });
 
   it("menampilkan logo dan subtitle aplikasi", () => {
