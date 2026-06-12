@@ -90,6 +90,23 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class UserVerificationUpdate(BaseModel):
+    is_active: bool
+
+
+class UserRoleUpdate(BaseModel):
+    role: str
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, v):
+        allowed_roles = ["user", "admin", "superadmin"]
+
+        if v not in allowed_roles:
+            raise ValueError("Role harus user, admin, atau superadmin")
+
+        return v
+
 
 class LoginRequest(BaseModel):
     email: str

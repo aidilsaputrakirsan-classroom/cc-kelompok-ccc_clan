@@ -6,7 +6,6 @@ import ConfirmModal from "./ConfirmModal";
 import {
   canManageCandidates,
   getUserDisplayRole,
-  isSuperAdmin,
 } from "../utils/auth";
 
 function AdminNavbar() {
@@ -18,7 +17,6 @@ function AdminNavbar() {
 
   const role = getUserDisplayRole();
   const canManage = canManageCandidates();
-  const superAdmin = isSuperAdmin();
 
   const isDashboardRoute = location.pathname === "/dashboard";
   const isCandidatesRoute =
@@ -103,7 +101,7 @@ function AdminNavbar() {
             </Link>
           )}
 
-          {superAdmin && (
+          {canManage && (
             <Link
               to="/manage-users"
               className={isManageUsersRoute ? "nav-active" : ""}
