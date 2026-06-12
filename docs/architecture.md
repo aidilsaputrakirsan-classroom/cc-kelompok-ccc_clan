@@ -239,34 +239,25 @@ docker compose logs item-db
 
 ### Retry Mechanism
 
-Item Service menggunakan retry mechanism dengan exponential backoff ketika melakukan komunikasi ke Auth Service.
-
-Konfigurasi:
-
-* Maximum Retry: 3
-* Delay: 0.5s → 1s → 2s
-* Timeout: 5 detik
+Candidate Service dan Vote Service menggunakan auth client untuk melakukan komunikasi dengan Auth Service. Ketika terjadi gangguan jaringan atau service tidak dapat diakses, sistem melakukan retry secara otomatis menggunakan exponential backoff.
 
 ### Circuit Breaker
 
-Circuit breaker digunakan untuk mencegah cascading failure saat Auth Service tidak dapat diakses.
+Circuit breaker digunakan untuk mencegah cascading failure ketika dependency tidak tersedia. Setelah batas kegagalan tertentu tercapai, service akan menghentikan request sementara dan memasuki state OPEN hingga cooldown selesai.
 
-State yang digunakan:
+### Logging & Monitoring
 
-* CLOSED (normal operation)
-* OPEN (service unavailable)
-* HALF_OPEN (recovery testing)
+Setiap service dilengkapi dengan logging middleware dan konfigurasi logging terpusat untuk membantu proses debugging serta observability.
 
-### Health Monitoring
+Komponen logging:
 
-Setiap service menyediakan endpoint health check untuk memantau kondisi layanan dan dependency.
+* logging_config.py
+* logging_middleware.py
 
-Contoh endpoint:
+### Metrics Collection
 
-```http
-GET /health
-```
+Sistem menyediakan metrik operasional melalui modul metrics.py untuk membantu monitoring performa service.
 
-### Graceful Recovery
+### Recovery Process
 
-Setelah service yang gagal kembali aktif, circuit breaker akan melakukan proses recovery secara otomatis dan mengembalikan sistem ke kondisi normal.
+Ketika service kembali aktif, circuit breaker akan melakukan proses recovery dan mengembalikan sistem ke kondisi normal tanpa perlu restart seluruh aplikasi.
