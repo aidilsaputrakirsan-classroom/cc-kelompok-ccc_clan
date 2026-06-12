@@ -49,7 +49,7 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway up --service backend --detach
+          railway up --service Backend --detach
           echo "✅ Backend deployed"
 
       # Set URL output untuk dipakai job berikutnya
@@ -80,7 +80,7 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway up --service frontend --detach
+          railway up --service Frontend --detach
           echo "✅ Frontend deployed"
 
       - name: Set frontend URL
