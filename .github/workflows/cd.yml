@@ -5,13 +5,12 @@
 # ==============================================
 #
 # Workflow ini berjalan otomatis saat push ke main (setelah CI pass).
-# Deploy ke Railway menggunakan Railway CLI
 #
 # Jobs:
-#   deploy-backend   : Deploy backend ke Railway
-#   deploy-frontend  : Deploy frontend ke Railway
+#   deploy-backend   : Deploy backend ke Railway/Render
+#   deploy-frontend  : Deploy frontend ke Railway/Render
 #   health-check     : Panggil /health endpoint, gagal jika tidak healthy
-#   notify-deploy    : Ringkasan deployment sebagai output log
+#   notify-deploy    : Ringkasan deployment sebagai PR comment / output
 
 name: CD Pipeline
 
@@ -28,7 +27,7 @@ jobs:
 
   # ================================================================
   # JOB 1: Deploy Backend
-  # Deploy ke Railway menggunakan Railway CLI
+  # Sesuaikan dengan platform yang digunakan (Railway / Render)
   # ================================================================
   deploy-backend:
     name: 🚀 Deploy Backend
@@ -42,21 +41,24 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # ── Jika pakai Railway ──────────────────────────────────────
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Deploy Backend ke Railway
+      - name: Login to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_SERVICE: ${{ secrets.RAILWAY_BACKEND_SERVICE_ID }}
-        run: |
-          echo "🚀 Deploying backend ke Railway..."
-          railway up --service $RAILWAY_SERVICE --detach
-          echo "✅ Backend deployed successfully"
+        run: railway login --apiKey $RAILWAY_TOKEN
 
+      - name: Deploy Backend to Railway
+        run: |
+          railway up --service backend --detach
+          echo "✅ Backend deployed"
+
+      # Set URL output untuk dipakai job berikutnya
       - name: Set backend URL
         id: set-url
-        run: echo "url=https://backendcc-kelompok-cccclan-production.up.railway.app" >> $GITHUB_OUTPUT
+        run: echo "url=backendcc-kelompok-cccclan-production.up.railway.app" >> $GITHUB_OUTPUT
 
 
   # ================================================================
@@ -77,18 +79,19 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Deploy Frontend ke Railway
+      - name: Login to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_SERVICE: ${{ secrets.RAILWAY_FRONTEND_SERVICE_ID }}
+        run: railway login --apiKey $RAILWAY_TOKEN
+
+      - name: Deploy Frontend to Railway
         run: |
-          echo "🚀 Deploying frontend ke Railway..."
-          railway up --service $RAILWAY_SERVICE --detach
-          echo "✅ Frontend deployed successfully"
+          railway up --service frontend --detach
+          echo "✅ Frontend deployed"
 
       - name: Set frontend URL
         id: set-url
-        run: echo "url=https://frontendcc-kelompok-cccclan-production.up.railway.app" >> $GITHUB_OUTPUT
+        run: echo "url=frontendcc-kelompok-cccclan-production.up.railway.app" >> $GITHUB_OUTPUT
 
 
   # ================================================================
