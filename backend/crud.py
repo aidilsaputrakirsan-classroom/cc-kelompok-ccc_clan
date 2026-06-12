@@ -27,9 +27,7 @@ def get_items(db: Session, skip=0, limit=20, search=None, category=None):
         )
 
     if category:
-        query = query.filter(
-            Item.category.ilike(f"%{category}%")
-        )
+        query = query.filter(Item.category.ilike(f"%{category}%"))
 
     total = query.count()
     items = query.order_by(Item.created_at.desc()).offset(skip).limit(limit).all()
@@ -43,6 +41,7 @@ def get_item(db: Session, item_id: int):
 
 def update_item(db: Session, item_id: int, item_data: ItemUpdate):
     db_item = db.query(Item).filter(Item.id == item_id).first()
+
     if not db_item:
         return None
 
@@ -51,22 +50,32 @@ def update_item(db: Session, item_id: int, item_data: ItemUpdate):
 
     db.commit()
     db.refresh(db_item)
+
     return db_item
 
 
 def delete_item(db: Session, item_id: int):
     db_item = db.query(Item).filter(Item.id == item_id).first()
+
     if not db_item:
         return False
 
     db.delete(db_item)
     db.commit()
+
     return True
 
 
 # ================= USER =================
 def create_user(db: Session, user_data: UserCreate):
-    if db.query(User).filter(User.email == user_data.email).first():
+    existing_email = db.query(User).filter(User.email == user_data.email).first()
+
+    if existing_email:
+        return None
+
+    existing_nim = db.query(User).filter(User.nim == user_data.nim).first()
+
+    if existing_nim:
         return None
 
     user = User(
@@ -78,38 +87,108 @@ def create_user(db: Session, user_data: UserCreate):
         fakultas=user_data.fakultas,
         angkatan=user_data.angkatan,
         hashed_password=hash_password(user_data.password),
-        role="user"
+        role="user",
+        is_active=True,
     )
 
     db.add(user)
     db.commit()
     db.refresh(user)
+
     return user
 
 
 def create_admin(db: Session, user_data: UserCreate):
     user = create_user(db, user_data)
+
     if user:
         user.role = "admin"
         db.commit()
+        db.refresh(user)
+
     return user
 
 
 def authenticate_user(db: Session, email: str, password: str):
     user = db.query(User).filter(User.email == email).first()
+
     if not user:
         return None
+
     if not verify_password(password, user.hashed_password):
         return None
+
+    return user
+
+
+def get_users(
+    db: Session,
+    search: str | None = None,
+    role: str | None = None,
+    is_active: bool | None = None,
+):
+    query = db.query(User).order_by(User.created_at.desc())
+
+    if search:
+        keyword = f"%{search.lower()}%"
+        query = query.filter(
+            or_(
+                User.name.ilike(keyword),
+                User.email.ilike(keyword),
+                User.nim.ilike(keyword),
+                User.prodi.ilike(keyword),
+                User.jurusan.ilike(keyword),
+                User.fakultas.ilike(keyword),
+            )
+        )
+
+    if role:
+        query = query.filter(User.role == role)
+
+    if is_active is not None:
+        query = query.filter(User.is_active == is_active)
+
+    return query.all()
+
+
+def get_user_by_id(db: Session, user_id: int):
+    return db.query(User).filter(User.id == user_id).first()
+
+
+def update_user_verification(db: Session, user_id: int, is_active: bool):
+    user = get_user_by_id(db, user_id)
+
+    if not user:
+        return None
+
+    user.is_active = is_active
+    db.commit()
+    db.refresh(user)
+
+    return user
+
+
+def update_user_role(db: Session, user_id: int, role: str):
+    user = get_user_by_id(db, user_id)
+
+    if not user:
+        return None
+
+    user.role = role
+    db.commit()
+    db.refresh(user)
+
     return user
 
 
 # ================= CANDIDATE =================
 def create_candidate(db: Session, data: CandidateCreate):
     candidate = Candidate(**data.model_dump(), status="approved")
+
     db.add(candidate)
     db.commit()
     db.refresh(candidate)
+
     return candidate
 
 
@@ -117,8 +196,13 @@ def get_candidates(db: Session):
     return db.query(Candidate).order_by(Candidate.created_at.desc()).all()
 
 
+def get_candidate_by_id(db: Session, candidate_id: int):
+    return db.query(Candidate).filter(Candidate.id == candidate_id).first()
+
+
 def update_candidate(db: Session, candidate_id: int, data: CandidateUpdate):
     candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+
     if not candidate:
         return None
 
@@ -127,27 +211,25 @@ def update_candidate(db: Session, candidate_id: int, data: CandidateUpdate):
 
     db.commit()
     db.refresh(candidate)
+
     return candidate
 
 
 def delete_candidate(db: Session, candidate_id: int):
     candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+
     if not candidate:
         return False
 
     db.delete(candidate)
     db.commit()
+
     return True
 
 
 # ================= VOTING =================
-
 def vote_candidate(db: Session, user_id: int, candidate_id: int):
-
-    # cek user sudah voting atau belum
-    existing_vote = db.query(Vote).filter(
-        Vote.user_id == user_id
-    ).first()
+    existing_vote = db.query(Vote).filter(Vote.user_id == user_id).first()
 
     if existing_vote:
         raise HTTPException(
@@ -155,10 +237,7 @@ def vote_candidate(db: Session, user_id: int, candidate_id: int):
             detail="User sudah melakukan voting"
         )
 
-    # cek candidate ada atau tidak
-    candidate = db.query(Candidate).filter(
-        Candidate.id == candidate_id
-    ).first()
+    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
 
     if not candidate:
         raise HTTPException(
@@ -178,7 +257,6 @@ def vote_candidate(db: Session, user_id: int, candidate_id: int):
 
 
 def get_vote_results(db: Session):
-
     results = (
         db.query(
             Vote.candidate_id,

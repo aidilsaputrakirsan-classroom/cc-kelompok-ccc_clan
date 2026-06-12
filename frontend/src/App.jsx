@@ -14,6 +14,7 @@ import ProtectedRoute, { GuestRoute } from "./components/ProtectedRoute";
 import UnauthorizedPage from "./components/UnauthorizedPage";
 import NotFoundPage from "./components/NotFoundPage";
 import ComingSoonPage from "./components/ComingSoonPage";
+import ManageUsersPage from "./components/ManageUsersPage";
 import { ThemeProvider } from "./context/ThemeContext";
 
 function App() {
@@ -123,12 +124,8 @@ function App() {
           <Route
             path="/manage-users"
             element={
-              <ProtectedRoute allowedRoles={["superadmin"]}>
-                <ComingSoonPage
-                  badge="FASE 2"
-                  title="Manajemen User"
-                  description="Halaman verifikasi user dan pengelolaan data pemilih akan dibuat pada Fase 2."
-                />
+              <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
+                <ManageUsersPage />
               </ProtectedRoute>
             }
           />
