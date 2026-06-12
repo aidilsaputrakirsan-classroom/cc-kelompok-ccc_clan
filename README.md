@@ -30,11 +30,34 @@ Dalam implementasinya, SIPILIH membagi hak akses pengguna ke dalam beberapa pera
 ## 🏗️ Architecture
 
 ```
-[React Frontend] <--HTTP--> [FastAPI Backend] <--SQL--> [PostgreSQL Database]
-      |                            |
-  Vite + JSX               REST API Endpoints
-  (Port 5173)               (Port 8000)
+                   ┌──────────────┐
+                   │   Frontend   │
+                   └──────┬───────┘
+                          │
+                          ▼
+                   ┌──────────────┐
+                   │   Gateway    │
+                   └──────┬───────┘
+                          │
+        ┌─────────────────┼─────────────────┐
+        ▼                 ▼                 ▼
+ ┌────────────┐   ┌────────────┐   ┌────────────┐
+ │Auth Service│   │Candidate   │   │Vote Service│
+ │            │   │ Service    │   │            │
+ └─────┬──────┘   └─────┬──────┘   └─────┬──────┘
+       │                │                │
+       ▼                ▼                ▼
+  PostgreSQL      PostgreSQL      PostgreSQL
 ```
+
+## 🌐 Live Demo
+
+| Service | URL |
+|---------|-----|
+| Frontend | https://frontendcc-kelompok-cccclan-production.up.railway.app/ |
+| Backend API | https://backendcc-kelompok-cccclan-production.up.railway.app |
+| API Docs | https://backendcc-kelompok-cccclan-production.up.railway.app/docs |
+
 
 ## 🚀 Getting Started
 
@@ -62,14 +85,72 @@ npm run dev
 - API Docs : http://localhost:8000/docs
 - Frontend : http://localhost:5173
 
-## 🌐 Live Demo
+## Docker Setup
 
-| Service | URL |
-|---------|-----|
-| Frontend | https://frontendcc-kelompok-cccclan-production.up.railway.app/ |
-| Backend API | https://backendcc-kelompok-cccclan-production.up.railway.app |
-| API Docs | https://backendcc-kelompok-cccclan-production.up.railway.app/docs |
+Pastikan Docker sudah terinstall di sistem:
+```
+docker --version  
+docker compose version  
+```
+Lakukan pengujian awal Docker:
+```
+docker run hello-world  
+```
+Jika berhasil, akan muncul pesan: 
+```
+"Hello from Docker!"
+```
+Login ke Docker Hub:
+```
+docker login  
+```
 
+## Build Image
+
+Masuk ke folder backend dan build Docker image:
+```
+cd backend  
+docker build -t sipilih-backend:v1 .  
+```
+Verifikasi bahwa image berhasil dibuat:
+```
+docker images  
+```
+Pastikan terdapat image dengan nama 
+```
+`sipilih-backend:v1`.
+```
+
+## Run Container
+
+Jalankan container menggunakan perintah berikut:
+```
+docker run -p 8000:8000 --env-file .env sipilih-backend:v1  
+```
+Jika terjadi error koneksi database, periksa konfigurasi `DATABASE_URL` pada file `.env`:
+
+- Untuk Windows / Mac:
+```
+  host.docker.internal  
+```
+- Untuk Linux:  
+```
+  172.17.0.1  
+```
+
+## API Testing
+
+Setelah container berjalan, buka browser dan akses:
+```
+http://localhost:8000/docs  
+```
+Lakukan pengujian endpoint berikut:
+
+- GET /health → memastikan service berjalan dengan baik  
+- POST /auth/register → membuat user baru  
+- POST /auth/login → autentikasi user  
+
+Jika semua endpoint berjalan dengan baik, maka backend berhasil dijalankan menggunakan Docker.
 
 ## 🔄 CI/CD
 
@@ -117,6 +198,866 @@ Automatic Deployment
 Railway Production
 ```
 
+## 📊 Monitoring & Observability
+
+SiPilih menerapkan konsep observability untuk membantu proses monitoring, debugging, dan troubleshooting pada lingkungan microservices.
+
+### Structured Logging
+
+Setiap service menghasilkan structured logs dalam format JSON yang berisi:
+
+* Timestamp
+* Log Level
+* Service Name
+* Correlation ID
+* Request Path
+* Response Status
+* Request Duration
+
+Structured logging mempermudah proses pencarian dan analisis log pada lingkungan production.
+
+### Correlation ID Tracing
+
+Setiap request yang melewati Gateway, Auth Service, Candidate Service, dan Vote Service akan membawa Correlation ID yang sama.
+
+Dengan mekanisme ini, perjalanan request dapat ditelusuri secara end-to-end untuk kebutuhan debugging dan investigasi masalah.
+
+### Metrics Endpoint
+
+Setiap service menyediakan endpoint metrics untuk memantau performa aplikasi.
+
+Metrics yang dikumpulkan meliputi:
+
+* Request Count
+* Error Count
+* Error Rate
+* Average Latency
+* P50 Latency
+* P95 Latency
+* P99 Latency
+
+### Health Monitoring
+
+Setiap service menyediakan endpoint health check yang dapat digunakan untuk memverifikasi kondisi layanan secara real-time.
+
+### Status Dashboard
+
+Frontend menyediakan halaman monitoring yang menampilkan:
+
+* Status seluruh service
+* Error Rate
+* Request Count
+* Latency Metrics
+* Uptime Information
+
+Dashboard diperbarui secara otomatis untuk membantu monitoring operasional sistem.
+
+## 📚 API Documentation
+
+### Base URL
+
+Development Environment
+
+```text
+http://localhost
+```
+
+Production Environment
+
+```text
+https://backendcc-kelompok-cccclan-production.up.railway.app
+```
+
+---
+
+# 🔐 Auth Service
+
+Auth Service bertanggung jawab untuk registrasi pengguna, login, validasi JWT, serta monitoring service.
+
+### Register User
+
+**Method**
+
+```http
+POST
+```
+
+**Endpoint**
+
+```http
+/register
+```
+
+**Request Body**
+
+```json
+{
+  "email": "user@example.com",
+  "name": "John Doe",
+  "nim": "10231000",
+  "prodi": "Informatika",
+  "jurusan": "Teknik Informatika",
+  "fakultas": "Teknik",
+  "angkatan": "2023",
+  "password": "Password123!"
+}
+```
+
+---
+
+### Login User
+
+**Method**
+
+```http
+POST
+```
+
+**Endpoint**
+
+```http
+/login
+```
+
+**Request Body**
+
+```json
+{
+  "email": "user@example.com",
+  "password": "Password123!"
+}
+```
+
+**Response Example**
+
+```json
+{
+  "access_token": "jwt-token",
+  "token_type": "bearer"
+}
+```
+
+---
+
+### Verify Token
+
+**Method**
+
+```http
+GET
+```
+
+**Endpoint**
+
+```http
+/verify
+```
+
+**Headers**
+
+```http
+Authorization: Bearer <access_token>
+```
+
+---
+
+### Health Check
+
+**Method**
+
+```http
+GET
+```
+
+**Endpoint**
+
+```http
+/health
+```
+
+---
+
+### Metrics
+
+**Method**
+
+```http
+GET
+```
+
+**Endpoint**
+
+```http
+/metrics
+```
+
+---
+
+# 🗳️ Candidate Service
+
+Candidate Service bertanggung jawab untuk pengelolaan data kandidat pemilihan.
+
+### Get All Candidates
+
+**Method**
+
+```http
+GET
+```
+
+**Endpoint**
+
+```http
+/candidates
+```
+
+**Optional Query Parameter**
+
+```http
+?position=Ketua HIMA
+```
+
+---
+
+### Get Candidate Detail
+
+**Method**
+
+```http
+GET
+```
+
+**Endpoint**
+
+```http
+/candidates/{candidate_id}
+```
+
+---
+
+### Candidate Statistics
+
+**Method**
+
+```http
+GET
+```
+
+**Endpoint**
+
+```http
+/candidates/stats
+```
+
+**Response Example**
+
+```json
+{
+  "total_candidates": 10,
+  "approved_candidates": 8,
+  "pending_candidates": 2
+}
+```
+
+---
+
+### Get Positions
+
+**Method**
+
+```http
+GET
+```
+
+**Endpoint**
+
+```http
+/positions
+```
+
+---
+
+## Candidate Management (Admin Only)
+
+Endpoint berikut memerlukan role:
+
+```text
+admin / superadmin
+```
+
+### Create Candidate
+
+```http
+POST /admin/candidates
+```
+
+### Update Candidate
+
+```http
+PUT /admin/candidates/{candidate_id}
+```
+
+### Delete Candidate
+
+```http
+DELETE /admin/candidates/{candidate_id}
+```
+
+### List All Candidates
+
+```http
+GET /admin/candidates
+```
+
+---
+
+### Health Check
+
+```http
+GET /health
+```
+
+---
+
+### Metrics
+
+```http
+GET /metrics
+```
+
+---
+
+# 🗳️ Vote Service
+
+Vote Service bertanggung jawab untuk proses pemungutan dan rekapitulasi suara.
+
+### Submit Vote
+
+**Method**
+
+```http
+POST
+```
+
+**Endpoint**
+
+```http
+/vote
+```
+
+**Headers**
+
+```http
+Authorization: Bearer <access_token>
+```
+
+**Request Body**
+
+```json
+{
+  "candidate_id": 1
+}
+```
+
+**Response Example**
+
+```json
+{
+  "message": "Vote berhasil disimpan"
+}
+```
+
+---
+
+### Get My Votes
+
+**Method**
+
+```http
+GET
+```
+
+**Endpoint**
+
+```http
+/my-votes
+```
+
+---
+
+### Get Vote Results
+
+**Method**
+
+```http
+GET
+```
+
+**Endpoint**
+
+```http
+/vote-results
+```
+
+---
+
+### Health Check
+
+```http
+GET /health
+```
+
+---
+
+### Metrics
+
+```http
+GET /metrics
+```
+
+---
+
+# 🔑 Authentication Flow
+
+```text
+User Register
+      ↓
+User Login
+      ↓
+JWT Token Generated
+      ↓
+Authorization: Bearer <token>
+      ↓
+Verify Token
+      ↓
+Access Protected Resources
+```
+
+## 🧪 TEST CASE – SIPILIH MICROSERVICES
+
+Dokumentasi pengujian fitur Authentication, Candidate Management, Voting, Monitoring, dan Reliability pada sistem SiPilih menggunakan FastAPI, JWT Authentication, dan Microservices Architecture.
+
+---
+
+### 1. Register User
+
+**Endpoint**
+
+```http
+POST /register
+```
+
+**Request Body**
+
+```json
+{
+  "email": "qatest@gmail.com",
+  "name": "Lead QA",
+  "password": "Testing123!",
+  "nim": "10231000",
+  "prodi": "Informatika",
+  "jurusan": "Teknik Informatika",
+  "fakultas": "Teknik",
+  "angkatan": "2023"
+}
+```
+
+**Expected Result**
+
+* Status `200 OK`
+* User berhasil tersimpan pada Auth Service Database
+
+**Status**
+
+✅ PASS
+
+---
+
+### 2. Login User
+
+**Endpoint**
+
+```http
+POST /login
+```
+
+**Request Body**
+
+```json
+{
+  "email": "qatest@gmail.com",
+  "password": "Testing123!"
+}
+```
+
+**Expected Result**
+
+* Status `200 OK`
+* JWT Access Token berhasil dibuat
+
+**Status**
+
+✅ PASS
+
+---
+
+### 3. Verify JWT Token
+
+**Endpoint**
+
+```http
+GET /verify
+```
+
+**Headers**
+
+```http
+Authorization: Bearer <access_token>
+```
+
+**Expected Result**
+
+* Status `200 OK`
+* User ID dan Role berhasil dikembalikan
+
+**Status**
+
+✅ PASS
+
+---
+
+### 4. Get Candidate List
+
+**Endpoint**
+
+```http
+GET /candidates
+```
+
+**Expected Result**
+
+* Status `200 OK`
+* Daftar kandidat berhasil ditampilkan
+
+**Status**
+
+✅ PASS
+
+---
+
+### 5. Get Candidate Detail
+
+**Endpoint**
+
+```http
+GET /candidates/{candidate_id}
+```
+
+**Expected Result**
+
+* Status `200 OK`
+* Detail kandidat berhasil ditampilkan
+
+**Status**
+
+✅ PASS
+
+---
+
+### 6. Candidate Statistics
+
+**Endpoint**
+
+```http
+GET /candidates/stats
+```
+
+**Expected Result**
+
+* Status `200 OK`
+* Statistik kandidat berhasil ditampilkan
+
+**Status**
+
+✅ PASS
+
+---
+
+### 7. Create Candidate (Admin)
+
+**Endpoint**
+
+```http
+POST /admin/candidates
+```
+
+**Authorization**
+
+```text
+admin / superadmin
+```
+
+**Expected Result**
+
+* Status `200 OK`
+* Kandidat baru berhasil dibuat
+
+**Status**
+
+✅ PASS
+
+---
+
+### 8. Update Candidate (Admin)
+
+**Endpoint**
+
+```http
+PUT /admin/candidates/{candidate_id}
+```
+
+**Expected Result**
+
+* Status `200 OK`
+* Data kandidat berhasil diperbarui
+
+**Status**
+
+✅ PASS
+
+---
+
+### 9. Delete Candidate (Admin)
+
+**Endpoint**
+
+```http
+DELETE /admin/candidates/{candidate_id}
+```
+
+**Expected Result**
+
+* Status `200 OK`
+* Kandidat berhasil dihapus
+
+**Status**
+
+✅ PASS
+
+---
+
+### 10. Submit Vote
+
+**Endpoint**
+
+```http
+POST /vote
+```
+
+**Headers**
+
+```http
+Authorization: Bearer <access_token>
+```
+
+**Request Body**
+
+```json
+{
+  "candidate_id": 1
+}
+```
+
+**Expected Result**
+
+* Status `200 OK`
+* Vote berhasil disimpan
+
+**Status**
+
+✅ PASS
+
+---
+
+### 11. Prevent Duplicate Vote
+
+**Scenario**
+
+User mencoba melakukan voting dua kali pada posisi yang sama.
+
+**Expected Result**
+
+```json
+{
+  "detail": "Anda sudah memilih untuk posisi ..."
+}
+```
+
+**Status**
+
+✅ PASS
+
+---
+
+### 12. My Votes
+
+**Endpoint**
+
+```http
+GET /my-votes
+```
+
+**Expected Result**
+
+* Status `200 OK`
+* Riwayat voting user berhasil ditampilkan
+
+**Status**
+
+✅ PASS
+
+---
+
+### 13. Vote Results
+
+**Endpoint**
+
+```http
+GET /vote-results
+```
+
+**Expected Result**
+
+* Status `200 OK`
+* Rekapitulasi hasil voting berhasil ditampilkan
+
+**Status**
+
+✅ PASS
+
+---
+
+### 14. Health Check Services
+
+**Endpoints**
+
+```http
+GET /health
+```
+
+(Auth Service, Candidate Service, Vote Service)
+
+**Expected Result**
+
+```json
+{
+  "status": "healthy"
+}
+```
+
+**Status**
+
+✅ PASS
+
+---
+
+### 15. Metrics Endpoint
+
+**Endpoint**
+
+```http
+GET /metrics
+```
+
+**Expected Result**
+
+* Metrics berhasil ditampilkan
+* Request Count tersedia
+* Error Rate tersedia
+* Latency tersedia
+
+**Status**
+
+✅ PASS
+
+---
+
+### 16. Reliability Test – Service Recovery
+
+**Scenario**
+
+Candidate Service atau Auth Service dihentikan sementara kemudian dijalankan kembali.
+
+**Expected Result**
+
+* Service kembali menerima request
+* Circuit Breaker kembali CLOSED
+* Sistem beroperasi normal
+
+**Status**
+
+✅ PASS
+
+---
+
+## Test Summary
+
+| Category            | Result |
+| ------------------- | ------ |
+| Authentication      | PASS   |
+| Candidate Service   | PASS   |
+| Vote Service        | PASS   |
+| Health Check        | PASS   |
+| Metrics Monitoring  | PASS   |
+| Reliability Testing | PASS   |
+
+### Final Result
+
+✅ All core features of SiPilih successfully passed functional, monitoring, and reliability testing.
+
+## 🚀 Development Journey
+
+Proyek SiPilih dikembangkan secara bertahap melalui beberapa milestone:
+
+| Week    | Milestone                    | Status |
+| ------- | ---------------------------- | ------ |
+| Week 9  | Git Workflow & Collaboration | ✅      |
+| Week 10 | Continuous Integration (CI)  | ✅      |
+| Week 11 | Continuous Deployment (CD)   | ✅      |
+| Week 12 | Microservices Architecture   | ✅      |
+| Week 13 | Reliability Engineering      | ✅      |
+| Week 14 | Monitoring & Observability   | ✅      |
+
+### Technologies Used
+
+#### Backend
+
+* Python
+* FastAPI
+* SQLAlchemy
+* PostgreSQL
+
+#### Frontend
+
+* React
+* Vite
+
+#### DevOps
+
+* Docker
+* Docker Compose
+* GitHub Actions
+* Railway
+
+#### Reliability & Monitoring
+
+* Circuit Breaker
+* Retry Mechanism
+* Structured Logging
+* Correlation ID Tracing
+* Metrics Collection
+* Health Monitoring
+
 
 ## 📅 Roadmap
 
@@ -129,622 +1070,76 @@ Railway Production
 | 5-7 | Docker & Compose | ✅ |
 | 8 | UTS Demo | ✅ |
 | 9-11 | CI/CD Pipeline | ✅ |
-| 12-14 | Microservices | ⬜ |
-| 15-16 | Final & UAS | ⬜ |
+| 12-14 | Microservices | ✅ |
+| 15-16 | Final & UAS | ✅ |
 
 
 ## 📁 Project Structure
 
-```
+```text
 cc-kelompok-ccc_clan/
 │
-├── 📁 backend/                    # Backend Applications
-│   ├── 📁 v.env/
-│   │   ├── 📁 Include/
-│   │   ├── 📁 Lib/
-│   │   ├── 📁 Scripts/
-│   │   └── pyvenv.cfg
-│   ├── .env.example
-│   ├── .gitkeep
-│   ├── crud.py
-│   ├── database.py
-│   ├── main.py
-│   ├── models.py
-│   ├── requirements.txt
-│   └── schemas.py
-│
-├── 📁 docs/
-│   ├── 📁 img/                       # Documentations
-│   ├── api-test-result.md
-│   ├── database-schema.md
-│   ├── member-Ade.md
-│   ├── member-Dani.md
-│   ├── member-dzakwan.md
-│   └── member-risky.md
-│
-├── 📁 frontend/                   # Frontend Applications
-│   ├── 📁 public/
-│   │   └── vite.svg
+├── backend/
+│   ├── services/
+│   │   ├── auth-service/
+│   │   │   ├── main.py
+│   │   │   ├── auth.py
+│   │   │   ├── models.py
+│   │   │   └── database.py
+│   │   │
+│   │   ├── candidate-service/
+│   │   │   ├── main.py
+│   │   │   ├── auth_client.py
+│   │   │   ├── circuit_breaker.py
+│   │   │   └── models.py
+│   │   │
+│   │   ├── vote-service/
+│   │   │   ├── main.py
+│   │   │   ├── auth_client.py
+│   │   │   ├── candidate_client.py
+│   │   │   └── models.py
+│   │   │
+│   │   └── gateway/
 │   │
-│   ├── 📁 src/
-│   │   ├── 📁 assets/
-│   │   │   └── react.svg
-│   │   ├── App.css
-│   │   ├── App.jsx
-│   │   ├── index.css
-│   │   └── main.jsx
-│   │
-│   ├── .gitignore
-│   ├── eslint.config.js
-│   ├── index.html
-│   ├── package-lock.json
-│   ├── package.json
-│   ├── README.md
-│   └── vite.config.js
+│   └── tests/
 │
-├── .gitignore
-├── README.md
-└── setup.sh
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   └── package.json
+│
+├── docs/
+│   ├── architecture.md
+│   ├── deployment-guide.md
+│   ├── operations-guide.md
+│   ├── production-test.md
+│   └── reliability-testing.md
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+│
+├── docker-compose.yml
+├── docker-compose.prod.yml
+└── README.md
 ```
-
-## API Documentation
-
-Base URL saat development
-
-http://localhost:8000
-
-
-### AUTHENTICATION
-
-Sistem menggunakan JWT Authentication (Bearer Token).
-
-Token didapatkan dari login dan wajib digunakan untuk endpoint yang dilindungi.
-
-
-#### 1. Register User
-
-Method
-```
-POST
-```
-
-Endpoint
-```
-/auth/register
-```
-
-Request Body
-```json
-{
-  "email": "user@example.com",
-  "password": "123456"
-}
-```
-
-Response Example
-```
-{
-  "id": 1,
-  "email": "user@example.com",
-  "role": "user"
-}
-```
-
-#### 2. Login User
-
-Method
-```
-POST
-```
-Endpoint
-```
-/auth/login
-```
-Request Body
-```
-{
-  "email": "user@example.com",
-  "password": "123456"
-}
-```
-Response Example
-```
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6...",
-  "token_type": "bearer",
-  "user": {
-    "id": 1,
-    "email": "user@example.com",
-    "role": "user"
-  }
-}
-```
-#### 3. Get Current User (Protected)
-
-Method
-```
-GET
-```
-Endpoint
-```
-/auth/me
-```
-Headers
-```
-Authorization: Bearer <access_token>
-```
-Response Example
-```
-{
-  "id": 1,
-  "email": "user@example.com",
-  "role": "user"
-}
-```
-
-#### 4. Create Item
-
-Method
-```
-POST
-```
-Endpoint
-```
-/items
-```
-Request Body
-```
-{
-  "name": "Laptop",
-  "price": 15000000,
-  "description": "Laptop gaming",
-  "quantity": 2
-}
-```
-Response Example
-```
-{
-  "id": 1,
-  "name": "Laptop",
-  "price": 15000000,
-  "description": "Laptop gaming",
-  "quantity": 2
-}
-```
-
-#### 5. Get Items (Pagination + Search)
-
-Method
-```
-GET
-```
-Endpoint
-```
-/items
-```
-Query Parameters
-| Parameter | Tipe    | Deskripsi                                 |
-| --------- | ------- | ----------------------------------------- |
-| skip      | integer | jumlah data yang dilewati                 |
-| limit     | integer | jumlah item per halaman                   |
-| search    | string  | pencarian berdasarkan nama atau deskripsi |
-
-
-Example Request
-```
-/items?skip=0&limit=20&search=laptop
-```
-Response Example
-```
-{
-  "total": 2,
-  "items": [
-    {
-      "id": 1,
-      "name": "Laptop",
-      "price": 15000000,
-      "description": "Laptop gaming",
-      "quantity": 2
-    }
-  ]
-}
-```
-#### 6. Get Item by ID
-
-Method
-```
-GET
-```
-Endpoint
-```
-/items/{id}
-```
-Example Request
-```
-/items/1
-```
-Response Example
-```
-{
-  "id": 1,
-  "name": "Laptop",
-  "price": 15000000,
-  "description": "Laptop gaming",
-  "quantity": 2
-}
-```
-Error Response
-```
-{
-  "detail": "Item tidak ditemukan"
-}
-```
-#### 7. Update Item
-
-Method
-```
-PUT
-```
-Endpoint
-```
-/items/{id}
-```
-Request Body
-```
-{
-  "name": "Laptop Updated",
-  "price": 16000000,
-  "quantity": 3
-}
-```
-Response Example
-```
-{
-  "id": 1,
-  "name": "Laptop Updated",
-  "price": 16000000,
-  "description": "Laptop gaming",
-  "quantity": 3
-}
-```
-#### 8. Delete Item
-
-Method
-```
-DELETE
-```
-Endpoint
-```
-/items/{id}
-```
-Response
-```
-{
-  "message": "Deleted"
-}
-```
-#### 9. Get Candidates (Public)
-
-Method
-```
-GET
-```
-Endpoint
-```
-/candidates
-```
-Response Example
-```
-[
-  {
-    "id": 1,
-    "name": "Candidate A",
-    "description": "Example candidate"
-  }
-]
-```
-#### 10. Create Candidate (ADMIN ONLY)
-
-Method
-```
-POST
-```
-Endpoint
-```
-/admin/candidates
-```
-Authorization Role
-```
-admin / superadmin
-```
-Request Body
-```
-{
-  "name": "Candidate A",
-  "description": "Example"
-}
-```
-#### 11. Update Candidate (ADMIN ONLY)
-
-Method
-```
-PUT
-```
-Endpoint
-```
-/admin/candidates/{id}
-```
-#### 12. Delete Candidate (ADMIN ONLY)
-
-Method
-```
-DELETE
-```
-Endpoint
-```
-/admin/candidates/{id}
-```
-#### 13. List Candidates (ADMIN ONLY)
-
-Method
-```
-GET
-```
-Endpoint
-```
-/admin/candidates
-```
-#### 14. Health Check
-
-Method
-```
-GET
-```
-Endpoint
-```
-/health
-```
-Response Example
-```
-{
-  "status": "ok"
-}
-```
-#### 15. Team Information
-
-Method
-```
-GET
-```
-Endpoint
-```
-/team
-```
-Response Example
-```
-{
-  "team": "CCC_Clan",
-  "members": [
-    {
-      "name": "Dzakwan Fatih Fadhilah",
-      "nim": "10231034",
-      "role": "Lead Backend"
-    },
-    {
-      "name": "Risky Nur Fatimah Bahar",
-      "nim": "10231084",
-      "role": "Lead Frontend"
-    },
-    {
-      "name": "Muhammad Dani",
-      "nim": "10231062",
-      "role": "Lead DevOps"
-    },
-    {
-      "name": "Ade Ayu Kholifah Putri",
-      "nim": "10231004",
-      "role": "Lead QA & Docs"
-    }
-  ]}
-```
-
-## TEST CASE AUTH & CRUD – SIPILIH (Cloud App API)
-
-Dokumentasi pengujian fitur autentikasi dan CRUD pada sistem SIPILIH menggunakan FastAPI + JWT Authentication.
-
----
-
-1. Register User
-
-Endpoint:
-```
-POST /auth/register
-```
-
-Request Body:
-```json
-{
-  "email": "qatest@gmail.com",
-  "name": "lead qa",
-  "password": "Testing123!",
-  "nim": "10231000",
-  "prodi": "Informatika",
-  "jurusan": "Teknik Informatika",
-  "fakultas": "Teknik",
-  "angkatan": "2023"
-}
-```
-
-Expected Result:
-- Status: `201 Created`
-- User berhasil dibuat di database
-
-Status:
-✅ Berhasil
-
----
-
-2. Login User
-
-Endpoint:
-```
-POST /auth/login
-```
-
-Request Body:
-```json
-{
-  "email": "qatest@gmail.com",
-  "password": "Testing123!"
-}
-```
-
-Expected Result:
-- Status: `200 OK`
-- Mendapatkan JWT access token
-
-Contoh Response:
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "bearer",
-  "user": {
-    "id": 2,
-    "email": "qatest@gmail.com",
-    "name": "lead qa",
-    "role": "user",
-    "is_active": true
-  }
-}
-```
-
-Status:
-✅ Berhasil
-
----
-
-3. Swagger Authorize (Issue)
-
-Expected Flow:
-1. Klik tombol **Authorize 🔒**
-2. Input:
-```
-Bearer <access_token>
-```
-3. Klik Authorize
-
-Actual Result:
-- Tidak ada field input token yang berfungsi
-- Authorization header tidak terkirim ke backend
-
-Status:
-❌ Gagal
-
----
-
-4. Get Current User
-
-Endpoint:
-GET /auth/me
-
-Expected Result:
-- Status: `200 OK`
-- Mengembalikan data user login
-
-Actual Result:
-- Tidak bisa diakses karena token tidak terkirim dari Swagger
-
-Status:
-❌ Gagal
-
----
-
-5. CRUD Items (Legacy / Protected Endpoint)
-
-Endpoint:
-- POST /items
-- GET /items
-- PUT /items/{id}
-- DELETE /items/{id}
-
-Expected Result:
-- Semua endpoint bisa diakses setelah login
-
-Actual Result:
-```
-401 Unauthorized
-```
-
-Penyebab:
-- Token tidak terkirim dari Swagger UI
-
-Status:
-❌ Gagal
-
----
-
-6. CRUD Candidate (Core SIPILIH System)
-
-Endpoint:
-- GET /admin/candidates
-- POST /admin/candidates
-- PUT /admin/candidates/{id}
-- DELETE /admin/candidates/{id}
-
-Expected Result:
-- Admin dapat melakukan full CRUD kandidat
-
-Actual Result:
-- Berjalan normal via frontend dengan token valid
-
-Status:
-✅ Berhasil
-
----
 
 ## AUTH MECHANISM
-
-### Flow Sistem:
-1. User register
-2. User login → JWT token dihasilkan
-3. Token disimpan di frontend
-4. Request dikirim dengan header:
-```
-Authorization: Bearer <token>
-```
-5. Backend decode token & validasi user
-
----
-
-## BUG REPORT
-
-### ❌ BUG 1 – Swagger Authorize Tidak Berfungsi
-
-Error:
-- Tidak bisa input token di Swagger UI
-- Authorization header tidak aktif
-
-Root Cause:
-```python
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-```
-
-Masalah:
-- Swagger OAuth2 default mengharapkan form-data login
-- Backend menggunakan JSON login
-- Akibatnya Swagger gagal generate token flow
-
----
-
-### ❌ BUG 2 – 401 Unauthorized di Swagger
-
-Error:
-```
-401 Unauthorized
-```
-
-Penyebab:
-- Token tidak pernah dikirim dari Swagger ke backend
+User Login
+     ↓
+Auth Service
+     ↓
+JWT Generated
+     ↓
+Frontend Stores Token
+     ↓
+Gateway
+     ↓
+Candidate Service / Vote Service
+     ↓
+Auth Service Verification
+     ↓
+Response Returned
 
 ---
 
@@ -768,106 +1163,11 @@ require_role(["admin", "superadmin"])
 ```
 
 ---
+## Database Layer
 
-## crud.py (Database Layer)
-- SQLAlchemy ORM
-- Handle:
-  - User management
-  - Candidate CRUD
-  - Item CRUD (legacy)
-
-Semua query menggunakan session dependency injection
-
+Handle:
+- User Management
+- Candidate Management
+- Vote Management
+- Authentication Data
 ---
-
-## 📦 API SUMMARY
-
-### 🔓 Public Endpoints
-
-| Method | Endpoint       | Deskripsi     |
-|--------|----------------|---------------|
-| GET    | /health        | Cek server    |
-| POST   | /auth/register | Register user |
-| POST   | /auth/login    | Login user    |
-
----
-
-### 🔒 Protected Endpoints
-
-| Method | Endpoint               | Deskripsi       |
-|--------|------------------------|-----------------|
-| GET    | /auth/me               | Data user login |
-| GET    | /admin/candidates      | List kandidat   |
-| POST   | /admin/candidates      | Create kandidat |
-| PUT    | /admin/candidates/{id} | Update kandidat |
-| DELETE | /admin/candidates/{id} | Delete kandidat |
-
----
-
-
-## Docker Setup
-
-Pastikan Docker sudah terinstall di sistem:
-```
-docker --version  
-docker compose version  
-```
-Lakukan pengujian awal Docker:
-```
-docker run hello-world  
-```
-Jika berhasil, akan muncul pesan: 
-```
-"Hello from Docker!"
-```
-Login ke Docker Hub:
-```
-docker login  
-```
-
-## Build Image
-
-Masuk ke folder backend dan build Docker image:
-```
-cd backend  
-docker build -t cloudapp-backend:v1 .  
-```
-Verifikasi bahwa image berhasil dibuat:
-```
-docker images  
-```
-Pastikan terdapat image dengan nama 
-```
-`cloudapp-backend:v1`.
-```
-
-## Run Container
-
-Jalankan container menggunakan perintah berikut:
-```
-docker run -p 8000:8000 --env-file .env cloudapp-backend:v1  
-```
-Jika terjadi error koneksi database, periksa konfigurasi `DATABASE_URL` pada file `.env`:
-
-- Untuk Windows / Mac:
-```
-  host.docker.internal  
-```
-- Untuk Linux:  
-```
-  172.17.0.1  
-```
-
-## API Testing
-
-Setelah container berjalan, buka browser dan akses:
-```
-http://localhost:8000/docs  
-```
-Lakukan pengujian endpoint berikut:
-
-- GET /health → memastikan service berjalan dengan baik  
-- POST /auth/register → membuat user baru  
-- POST /auth/login → autentikasi user  
-
-Jika semua endpoint berjalan dengan baik, maka backend berhasil dijalankan menggunakan Docker.
