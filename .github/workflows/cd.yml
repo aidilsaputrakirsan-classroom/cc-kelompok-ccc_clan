@@ -136,8 +136,8 @@ jobs:
             HEALTH_STATUS=$(cat /tmp/health_response.json | python3 -c \
               "import sys, json; d=json.load(sys.stdin); print(d.get('status',''))" 2>/dev/null || echo "")
 
-            if [ "$HEALTH_STATUS" != "ok" ]; then
-              echo "    ❌ Response status bukan 'ok' (dapat: '$HEALTH_STATUS'), coba lagi..."
+            if [ "$HEALTH_STATUS" != "healthy" ]; then
+              echo "    ❌ Response status bukan 'healthy' (dapat: '$HEALTH_STATUS'), coba lagi..."
               sleep $DELAY
               continue
             fi
