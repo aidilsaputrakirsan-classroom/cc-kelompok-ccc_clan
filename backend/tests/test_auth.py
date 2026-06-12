@@ -1,5 +1,11 @@
-def test_register(client):
+VALID_ACADEMIC_DATA = {
+    "prodi": "Sistem Informasi",
+    "jurusan": "Jurusan Teknik Elektro, Informatika, dan Bisnis",
+    "fakultas": "Fakultas Sains dan Teknologi Informasi",
+}
 
+
+def test_register(client):
     response = client.post(
         "/auth/register",
         json={
@@ -7,18 +13,17 @@ def test_register(client):
             "name": "Tester",
             "password": "Password123!",
             "nim": "10231034",
-            "prodi": "TI",
-            "jurusan": "TI",
-            "fakultas": "FTI",
-            "angkatan": 2023
-        }
+            "prodi": VALID_ACADEMIC_DATA["prodi"],
+            "jurusan": VALID_ACADEMIC_DATA["jurusan"],
+            "fakultas": VALID_ACADEMIC_DATA["fakultas"],
+            "angkatan": 2023,
+        },
     )
 
     assert response.status_code == 200
 
 
 def test_login(client):
-
     client.post(
         "/auth/register",
         json={
@@ -26,19 +31,20 @@ def test_login(client):
             "name": "Tester",
             "password": "Password123!",
             "nim": "10231035",
-            "prodi": "TI",
-            "jurusan": "TI",
-            "fakultas": "FTI",
-            "angkatan": 2023
-        }
+            "prodi": VALID_ACADEMIC_DATA["prodi"],
+            "jurusan": VALID_ACADEMIC_DATA["jurusan"],
+            "fakultas": VALID_ACADEMIC_DATA["fakultas"],
+            "angkatan": 2023,
+        },
     )
 
     response = client.post(
         "/auth/login",
         json={
             "email": "login@test.com",
-            "password": "Password123!"
-        }
+            "password": "Password123!",
+        },
     )
 
     assert response.status_code == 200
+    assert "access_token" in response.json()

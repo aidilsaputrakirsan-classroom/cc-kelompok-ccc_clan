@@ -1,35 +1,21 @@
 import os
-
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from academic_data import get_academic_structure
-from auth import create_access_token, get_current_user
 from database import engine, get_db
 from models import Base, User
 from schemas import (
-    AcademicStructureResponse,
-    CandidateCreate,
-    CandidateResponse,
-    CandidateUpdate,
-    ItemCreate,
-    ItemListResponse,
-    ItemResponse,
-    ItemUpdate,
-    LoginRequest,
-    TokenResponse,
-    UserCreate,
-    UserResponse,
-    UserRoleUpdate,
-    UserVerificationUpdate,
-    VoteResponse,
-    VoteResultResponse,
-    VoteStatusResponse,
+    ItemCreate, ItemUpdate, ItemResponse, ItemListResponse,
+    UserCreate, UserResponse, LoginRequest, TokenResponse,
+    UserVerificationUpdate, UserRoleUpdate,
+    CandidateCreate, CandidateUpdate, CandidateResponse,
+    VoteResponse, VoteResultResponse
 )
+from auth import create_access_token, get_current_user
 import crud
 
 load_dotenv()
@@ -37,45 +23,14 @@ load_dotenv()
 # ================= INIT =================
 Base.metadata.create_all(bind=engine)
 
-
-def run_lightweight_migrations():
-    """Menjaga DB lama tetap bisa dipakai setelah Vote.category_key ditambahkan.
-
-    Base.metadata.create_all hanya membuat tabel baru, tidak menambah kolom pada tabel lama.
-    Fungsi kecil ini menambah kolom category_key di tabel votes jika belum ada.
-    """
-
-    try:
-        with engine.begin() as connection:
-            dialect = engine.dialect.name
-
-            if dialect == "postgresql":
-                connection.execute(
-                    text("ALTER TABLE votes ADD COLUMN IF NOT EXISTS category_key VARCHAR(255)")
-                )
-                connection.execute(
-                    text("CREATE INDEX IF NOT EXISTS ix_votes_category_key ON votes (category_key)")
-                )
-                return
-
-            if dialect == "sqlite":
-                columns = connection.execute(text("PRAGMA table_info(votes)")).fetchall()
-                column_names = [column[1] for column in columns]
-
-                if "category_key" not in column_names:
-                    connection.execute(text("ALTER TABLE votes ADD COLUMN category_key VARCHAR(255)"))
-                return
-    except Exception as exc:
-        print(f"⚠️ Lightweight migration skipped: {exc}")
-
-
-run_lightweight_migrations()
-
-app = FastAPI(title="SIPILIH API", version="1.0.0")
+app = FastAPI(
+    title="Cloud App API",
+    version="1.0.0"
+)
 
 # ================= CORS =================
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
-origins_list = [origin.strip() for origin in allowed_origins.split(",")]
+origins_list = [i.strip() for i in allowed_origins.split(",")]
 
 app.add_middleware(
     CORSMiddleware,
@@ -85,16 +40,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # ================= ROLE CHECK =================
 def require_role(roles: list):
     def checker(current_user: User = Depends(get_current_user)):
         if current_user.role not in roles:
             raise HTTPException(status_code=403, detail="Akses ditolak")
         return current_user
-
     return checker
-
 
 # ================= HEALTH =================
 @app.get("/health")
@@ -105,32 +57,24 @@ def health_check(db: Session = Depends(get_db)):
         "service": "backend",
         "version": "1.0.0",
     }
-
+    
+    # Cek database connection
     try:
         db.execute(text("SELECT 1"))
         health["database"] = "connected"
-    except Exception as exc:
+    except Exception as e:
         health["status"] = "unhealthy"
-        health["database"] = f"error: {str(exc)}"
-
+        health["database"] = f"error: {str(e)}"
+    
     status_code = 200 if health["status"] == "healthy" else 503
     return JSONResponse(content=health, status_code=status_code)
-
-
-# ================= ACADEMIC DATA =================
-@app.get("/academic", response_model=AcademicStructureResponse)
-def academic_structure():
-    return {"faculties": get_academic_structure()}
-
 
 # ================= AUTH =================
 @app.post("/auth/register", response_model=UserResponse)
 def register(user: UserCreate, db: Session = Depends(get_db)):
     new_user = crud.create_user(db, user)
-
     if not new_user:
-        raise HTTPException(status_code=400, detail="Email atau NIM sudah digunakan")
-
+        raise HTTPException(status_code=400, detail="Email sudah digunakan")
     return new_user
 
 
@@ -141,19 +85,23 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=401, detail="Email / password salah")
 
-    token = create_access_token(data={"sub": str(user.id), "role": user.role})
+    token = create_access_token(
+        data={
+            "sub": str(user.id),
+            "role": user.role
+        }
+    )
 
     return {
         "access_token": token,
         "token_type": "bearer",
-        "user": user,
+        "user": user
     }
 
 
 @app.get("/auth/me", response_model=UserResponse)
 def me(current_user: User = Depends(get_current_user)):
     return current_user
-
 
 # ================= ADMIN USERS =================
 @app.get("/admin/users", response_model=list[UserResponse])
@@ -162,8 +110,9 @@ def list_users(
     role: str | None = Query(None),
     is_active: bool | None = Query(None),
     db: Session = Depends(get_db),
-    user: User = Depends(require_role(["admin", "superadmin"])),
+    user: User = Depends(require_role(["admin", "superadmin"]))
 ):
+    # Admin biasa hanya boleh melihat akun pemilih
     if user.role == "admin":
         role = "user"
 
@@ -175,7 +124,7 @@ def update_user_verification(
     user_id: int,
     data: UserVerificationUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_role(["admin", "superadmin"])),
+    user: User = Depends(require_role(["admin", "superadmin"]))
 ):
     target_user = crud.get_user_by_id(db, user_id)
 
@@ -183,12 +132,21 @@ def update_user_verification(
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
 
     if user.id == user_id and data.is_active is False:
-        raise HTTPException(status_code=400, detail="Tidak bisa menonaktifkan akun sendiri")
+        raise HTTPException(
+            status_code=400,
+            detail="Tidak bisa menonaktifkan akun sendiri"
+        )
 
+    # Admin biasa hanya boleh memverifikasi/nonaktifkan akun pemilih
     if user.role == "admin" and target_user.role != "user":
-        raise HTTPException(status_code=403, detail="Admin hanya dapat mengelola akun pemilih")
+        raise HTTPException(
+            status_code=403,
+            detail="Admin hanya dapat mengelola akun pemilih"
+        )
 
-    return crud.update_user_verification(db, user_id, data.is_active)
+    updated = crud.update_user_verification(db, user_id, data.is_active)
+
+    return updated
 
 
 @app.patch("/admin/users/{user_id}/role", response_model=UserResponse)
@@ -196,10 +154,13 @@ def update_user_role(
     user_id: int,
     data: UserRoleUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_role(["superadmin"])),
+    user: User = Depends(require_role(["superadmin"]))
 ):
     if user.id == user_id:
-        raise HTTPException(status_code=400, detail="Tidak bisa mengubah role akun sendiri")
+        raise HTTPException(
+            status_code=400,
+            detail="Tidak bisa mengubah role akun sendiri"
+        )
 
     updated = crud.update_user_role(db, user_id, data.role)
 
@@ -270,13 +231,7 @@ def delete_item(
 # ================= CANDIDATE PUBLIC =================
 @app.get("/candidates", response_model=list[CandidateResponse])
 def get_candidates(db: Session = Depends(get_db)):
-    return crud.get_candidates(db, only_approved=True)
-@app.get("/candidates/eligible", response_model=list[CandidateResponse])
-def get_eligible_candidates(
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    return crud.get_eligible_candidates(db, user)
+    return crud.get_candidates(db)
 
 
 # ================= CANDIDATE ADMIN =================
@@ -284,7 +239,7 @@ def get_eligible_candidates(
 def create_candidate(
     data: CandidateCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_role(["admin", "superadmin"])),
+    user: User = Depends(require_role(["admin", "superadmin"]))
 ):
     return crud.create_candidate(db, data)
 
@@ -294,7 +249,7 @@ def update_candidate(
     id: int,
     data: CandidateUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_role(["admin", "superadmin"])),
+    user: User = Depends(require_role(["admin", "superadmin"]))
 ):
     result = crud.update_candidate(db, id, data)
     if not result:
@@ -306,7 +261,7 @@ def update_candidate(
 def delete_candidate(
     id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(require_role(["admin", "superadmin"])),
+    user: User = Depends(require_role(["admin", "superadmin"]))
 ):
     success = crud.delete_candidate(db, id)
     if not success:
@@ -317,29 +272,26 @@ def delete_candidate(
 @app.get("/admin/candidates", response_model=list[CandidateResponse])
 def list_candidates(
     db: Session = Depends(get_db),
-    user: User = Depends(require_role(["admin", "superadmin"])),
+    user: User = Depends(require_role(["admin", "superadmin"]))
 ):
     return crud.get_candidates(db)
 
 
 # ================= VOTING =================
+
 @app.post("/vote/{candidate_id}", response_model=VoteResponse)
 def vote_candidate(
     candidate_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user)
 ):
-    return crud.vote_candidate(db, user, candidate_id)
-@app.get("/vote/my-status", response_model=VoteStatusResponse)
-def vote_my_status(
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    return crud.get_vote_status(db, user)
+    return crud.vote_candidate(db, user.id, candidate_id)
 
 
 @app.get("/vote/results", response_model=list[VoteResultResponse])
-def vote_results(db: Session = Depends(get_db)):
+def vote_results(
+    db: Session = Depends(get_db)
+):
     return crud.get_vote_results(db)
 
 
@@ -352,6 +304,6 @@ def team():
             {"name": "Dzakwan Fatih Fadhilah", "nim": "10231034", "role": "Lead Backend"},
             {"name": "Risky Nur Fatimah Bahar", "nim": "10231084", "role": "Lead Frontend"},
             {"name": "Muhammad Dani", "nim": "10231062", "role": "Lead Devops"},
-            {"name": "Ade Ayu Kholifah Putri", "nim": "10231004", "role": "Lead QA & Docs"},
+            {"name": "Ade Ayu Kholifah Putri", "nim": "10231004", "role": "Lead QA & Docs"}
         ],
     }

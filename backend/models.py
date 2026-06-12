@@ -1,7 +1,7 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean
 from sqlalchemy.sql import func
+from sqlalchemy import ForeignKey
 from database import Base
-
 
 # ================= ITEM =================
 class Item(Base):
@@ -82,11 +82,7 @@ class Vote(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
 
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    candidate_id = Column(Integer, ForeignKey("candidates.id"), nullable=False, index=True)
-
-    # category_key dipakai untuk aturan 1 kategori = 1 vote.
-    # Contoh: ketua km::km::km, dpm fakultas::fakultas::fakultas sains dan teknologi informasi
-    category_key = Column(String(255), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    candidate_id = Column(Integer, ForeignKey("candidates.id"), nullable=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
