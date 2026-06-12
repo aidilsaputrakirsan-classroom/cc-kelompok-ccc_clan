@@ -1,6 +1,9 @@
+import { getFriendlyErrorMessage } from "../utils/validation";
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const TOKEN_KEY = "token";
+const USER_KEY = "user";
 
 export function setToken(token) {
   localStorage.setItem(TOKEN_KEY, token);
@@ -12,17 +15,18 @@ export function getToken() {
 
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem("user");
+  localStorage.removeItem(USER_KEY);
 }
 
 export function getStoredUser() {
-  const savedUser = localStorage.getItem("user");
+  const savedUser = localStorage.getItem(USER_KEY);
 
   if (!savedUser) return null;
 
   try {
     return JSON.parse(savedUser);
   } catch {
+    localStorage.removeItem(USER_KEY);
     return null;
   }
 }
@@ -38,6 +42,50 @@ function authHeaders() {
   return headers;
 }
 
+function extractDetailMessage(detail) {
+  if (!detail) return "";
+
+  if (typeof detail === "string") return detail;
+
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item?.msg) return item.msg;
+        if (item?.message) return item.message;
+        return JSON.stringify(item);
+      })
+      .join(", ");
+  }
+
+  if (typeof detail === "object") {
+    if (detail.msg) return detail.msg;
+    if (detail.message) return detail.message;
+    return JSON.stringify(detail);
+  }
+
+  return "";
+}
+
+async function readResponseBody(response) {
+  const contentType = response.headers?.get?.("content-type") || "";
+
+  if (contentType.includes("application/json") && typeof response.json === "function") {
+    return response.json().catch(() => ({}));
+  }
+
+  if (typeof response.json === "function") {
+    return response.json().catch(() => ({}));
+  }
+
+  if (typeof response.text === "function") {
+    const text = await response.text().catch(() => "");
+    return text ? { detail: text } : {};
+  }
+
+  return {};
+}
+
 async function handleResponse(response) {
   if (response.status === 401) {
     clearToken();
@@ -45,37 +93,40 @@ async function handleResponse(response) {
   }
 
   if (response.status === 403) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || "FORBIDDEN");
+    const error = await readResponseBody(response);
+    throw new Error(extractDetailMessage(error.detail) || "FORBIDDEN");
   }
 
   if (response.status === 503 || response.status === 504) {
-    throw new Error("Service temporarily unavailable");
+    throw new Error("Server sedang tidak tersedia. Coba lagi beberapa saat lagi.");
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
+    const error = await readResponseBody(response);
+    const rawMessage =
+      extractDetailMessage(error.detail) ||
+      error.message ||
+      `Request gagal dengan status ${response.status}`;
 
-    let errorMessage = "Request gagal";
-
-    if (error.detail) {
-      if (Array.isArray(error.detail)) {
-        errorMessage = error.detail
-          .map((item) => item.msg || JSON.stringify(item))
-          .join(", ");
-      } else if (typeof error.detail === "string") {
-        errorMessage = error.detail;
-      }
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-
-    throw new Error(errorMessage);
+    throw new Error(getFriendlyErrorMessage(rawMessage, "Request gagal. Periksa kembali data yang dikirim."));
   }
 
   if (response.status === 204) return null;
 
-  return response.json();
+  return readResponseBody(response);
+}
+
+async function apiFetch(path, options = {}) {
+  try {
+    const response = await fetch(`${API_URL}${path}`, options);
+    return await handleResponse(response);
+  } catch (error) {
+    if (error.message === "UNAUTHORIZED" || error.message === "FORBIDDEN") {
+      throw error;
+    }
+
+    throw new Error(getFriendlyErrorMessage(error));
+  }
 }
 
 // =====================
@@ -83,11 +134,9 @@ async function handleResponse(response) {
 // =====================
 
 export async function getAcademicStructure() {
-  const response = await fetch(`${API_URL}/academic`, {
+  return apiFetch("/academic", {
     method: "GET",
   });
-
-  return handleResponse(response);
 }
 
 // =====================
@@ -95,19 +144,17 @@ export async function getAcademicStructure() {
 // =====================
 
 export async function register(userData) {
-  const response = await fetch(`${API_URL}/auth/register`, {
+  return apiFetch("/auth/register", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(userData),
   });
-
-  return handleResponse(response);
 }
 
 export async function login(email, password) {
-  const response = await fetch(`${API_URL}/auth/login`, {
+  const data = await apiFetch("/auth/login", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -115,33 +162,29 @@ export async function login(email, password) {
     body: JSON.stringify({ email, password }),
   });
 
-  const data = await handleResponse(response);
-
-  if (!data.access_token) {
-    throw new Error("Server tidak mengembalikan access_token");
+  if (!data?.access_token) {
+    throw new Error("Login berhasil diproses, tetapi server tidak mengirim token. Hubungi tim backend.");
   }
 
   setToken(data.access_token);
 
   if (data.user) {
-    localStorage.setItem("user", JSON.stringify(data.user));
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
   }
 
   return data;
 }
 
 export async function getMe() {
-  const response = await fetch(`${API_URL}/auth/me`, {
+  const data = await apiFetch("/auth/me", {
     method: "GET",
     headers: {
       ...authHeaders(),
     },
   });
 
-  const data = await handleResponse(response);
-
   if (data) {
-    localStorage.setItem("user", JSON.stringify(data));
+    localStorage.setItem(USER_KEY, JSON.stringify(data));
   }
 
   return data;
@@ -156,33 +199,27 @@ export async function logout() {
 // =====================
 
 export async function getPublicCandidates() {
-  const response = await fetch(`${API_URL}/candidates`, {
+  return apiFetch("/candidates", {
     method: "GET",
   });
-
-  return handleResponse(response);
 }
 
 export async function getEligibleCandidates() {
-  const response = await fetch(`${API_URL}/candidates/eligible`, {
+  return apiFetch("/candidates/eligible", {
     method: "GET",
     headers: {
       ...authHeaders(),
     },
   });
-
-  return handleResponse(response);
 }
 
 export async function getAdminCandidates() {
-  const response = await fetch(`${API_URL}/admin/candidates`, {
+  return apiFetch("/admin/candidates", {
     method: "GET",
     headers: {
       ...authHeaders(),
     },
   });
-
-  return handleResponse(response);
 }
 
 export async function getCandidateById(id) {
@@ -191,7 +228,7 @@ export async function getCandidateById(id) {
 }
 
 export async function createCandidate(candidateData) {
-  const response = await fetch(`${API_URL}/admin/candidates`, {
+  return apiFetch("/admin/candidates", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -199,12 +236,10 @@ export async function createCandidate(candidateData) {
     },
     body: JSON.stringify(candidateData),
   });
-
-  return handleResponse(response);
 }
 
 export async function updateCandidate(id, candidateData) {
-  const response = await fetch(`${API_URL}/admin/candidates/${id}`, {
+  return apiFetch(`/admin/candidates/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -212,19 +247,15 @@ export async function updateCandidate(id, candidateData) {
     },
     body: JSON.stringify(candidateData),
   });
-
-  return handleResponse(response);
 }
 
 export async function deleteCandidate(id) {
-  const response = await fetch(`${API_URL}/admin/candidates/${id}`, {
+  return apiFetch(`/admin/candidates/${id}`, {
     method: "DELETE",
     headers: {
       ...authHeaders(),
     },
   });
-
-  return handleResponse(response);
 }
 
 // =====================
@@ -234,54 +265,35 @@ export async function deleteCandidate(id) {
 export async function getAdminUsers(filters = {}) {
   const params = new URLSearchParams();
 
-  if (filters.search) {
-    params.append("search", filters.search);
-  }
-
-  if (filters.role && filters.role !== "all") {
-    params.append("role", filters.role);
-  }
-
-  if (filters.status === "active") {
-    params.append("is_active", "true");
-  }
-
-  if (filters.status === "inactive") {
-    params.append("is_active", "false");
-  }
+  if (filters.search) params.append("search", filters.search);
+  if (filters.role && filters.role !== "all") params.append("role", filters.role);
+  if (filters.status === "active") params.append("is_active", "true");
+  if (filters.status === "inactive") params.append("is_active", "false");
 
   const queryString = params.toString();
-  const url = queryString
-    ? `${API_URL}/admin/users?${queryString}`
-    : `${API_URL}/admin/users`;
+  const url = queryString ? `/admin/users?${queryString}` : "/admin/users";
 
-  const response = await fetch(url, {
+  return apiFetch(url, {
     method: "GET",
     headers: {
       ...authHeaders(),
     },
   });
-
-  return handleResponse(response);
 }
 
 export async function updateUserVerification(userId, isActive) {
-  const response = await fetch(`${API_URL}/admin/users/${userId}/verification`, {
+  return apiFetch(`/admin/users/${userId}/verification`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
       ...authHeaders(),
     },
-    body: JSON.stringify({
-      is_active: isActive,
-    }),
+    body: JSON.stringify({ is_active: isActive }),
   });
-
-  return handleResponse(response);
 }
 
 export async function updateUserRole(userId, role) {
-  const response = await fetch(`${API_URL}/admin/users/${userId}/role`, {
+  return apiFetch(`/admin/users/${userId}/role`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -289,8 +301,6 @@ export async function updateUserRole(userId, role) {
     },
     body: JSON.stringify({ role }),
   });
-
-  return handleResponse(response);
 }
 
 // =====================
@@ -298,36 +308,30 @@ export async function updateUserRole(userId, role) {
 // =====================
 
 export async function voteCandidate(candidateId) {
-  const response = await fetch(`${API_URL}/vote/${candidateId}`, {
+  return apiFetch(`/vote/${candidateId}`, {
     method: "POST",
     headers: {
       ...authHeaders(),
     },
   });
-
-  return handleResponse(response);
 }
 
 export async function getMyVoteStatus() {
-  const response = await fetch(`${API_URL}/vote/my-status`, {
+  return apiFetch("/vote/my-status", {
     method: "GET",
     headers: {
       ...authHeaders(),
     },
   });
-
-  return handleResponse(response);
 }
 
 export async function getVoteResults() {
-  const response = await fetch(`${API_URL}/vote/results`, {
+  return apiFetch("/vote/results", {
     method: "GET",
     headers: {
       ...authHeaders(),
     },
   });
-
-  return handleResponse(response);
 }
 
 // =====================
@@ -336,11 +340,10 @@ export async function getVoteResults() {
 
 export async function checkHealth() {
   try {
-    const response = await fetch(`${API_URL}/health`);
+    await apiFetch("/health", {
+      method: "GET",
+    });
 
-    if (!response.ok) return false;
-
-    await response.json();
     return true;
   } catch {
     return false;

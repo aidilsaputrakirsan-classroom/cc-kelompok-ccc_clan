@@ -1,0 +1,183 @@
+/* =========================
+   FASE 6 - ERROR HANDLING & EMPTY STATE
+   Frontend only. Tidak mengubah backend.
+========================= */
+
+.fase6-page {
+    --fase6-danger: #dc2626;
+    --fase6-danger-bg: #fef2f2;
+    --fase6-danger-border: #fecaca;
+    --fase6-warning: #b45309;
+    --fase6-warning-bg: #fffbeb;
+    --fase6-warning-border: #fde68a;
+    --fase6-success: #166534;
+    --fase6-success-bg: #f0fdf4;
+    --fase6-success-border: #bbf7d0;
+    --fase6-info: #1d4ed8;
+    --fase6-info-bg: #eff6ff;
+    --fase6-info-border: #bfdbfe;
+  }
+  
+  .inline-alert {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    width: 100%;
+    margin: 12px 0;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid;
+    line-height: 1.5;
+  }
+  
+  .inline-alert strong {
+    display: block;
+    margin-bottom: 4px;
+  }
+  
+  .inline-alert p {
+    margin: 0;
+  }
+  
+  .inline-alert ul {
+    margin: 8px 0 0 18px;
+    padding: 0;
+  }
+  
+  .inline-alert-error {
+    background: var(--fase6-danger-bg);
+    border-color: var(--fase6-danger-border);
+    color: #991b1b;
+  }
+  
+  .inline-alert-warning {
+    background: var(--fase6-warning-bg);
+    border-color: var(--fase6-warning-border);
+    color: var(--fase6-warning);
+  }
+  
+  .inline-alert-success {
+    background: var(--fase6-success-bg);
+    border-color: var(--fase6-success-border);
+    color: var(--fase6-success);
+  }
+  
+  .inline-alert-info {
+    background: var(--fase6-info-bg);
+    border-color: var(--fase6-info-border);
+    color: var(--fase6-info);
+  }
+  
+  .inline-alert-action {
+    flex-shrink: 0;
+    border: 0;
+    border-radius: 999px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.82);
+    color: inherit;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  
+  .inline-alert-action:hover {
+    background: #ffffff;
+  }
+  
+  .field-invalid input,
+  .field-invalid select,
+  .field-invalid textarea {
+    border-color: var(--fase6-danger) !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1) !important;
+  }
+  
+  .field-error-text {
+    display: block;
+    margin-top: 6px;
+    color: var(--fase6-danger);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  
+  .field-help-text {
+    display: block;
+    margin-top: 6px;
+    color: var(--muted-text, #6b7280);
+    font-size: 12px;
+  }
+  
+  .fase6-empty-state {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .fase6-empty-state span {
+    display: inline-flex;
+    margin-bottom: 10px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  
+  .fase6-empty-state h3 {
+    margin: 0 0 8px;
+  }
+  
+  .fase6-empty-state p {
+    max-width: 540px;
+    margin: 0 auto 16px;
+    color: var(--muted-text, #6b7280);
+  }
+  
+  .fase6-loading-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 28px;
+    color: var(--muted-text, #6b7280);
+  }
+  
+  .fase6-spinner {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 3px solid #dbeafe;
+    border-top-color: #2563eb;
+    animation: fase6-spin 0.8s linear infinite;
+  }
+  
+  @keyframes fase6-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  .form-group input[aria-invalid="true"],
+  .form-group select[aria-invalid="true"],
+  .form-group textarea[aria-invalid="true"] {
+    border-color: var(--fase6-danger) !important;
+  }
+  
+  .form-group select:disabled,
+  .form-group input:disabled,
+  .form-group textarea:disabled {
+    cursor: not-allowed;
+    opacity: 0.72;
+  }
+  
+  @media (max-width: 720px) {
+    .inline-alert {
+      flex-direction: column;
+    }
+  
+    .inline-alert-action {
+      width: 100%;
+    }
+  }
+  
