@@ -6,7 +6,7 @@ import re
 
 # ==================== USER ====================
 class UserCreate(BaseModel):
-    email: str
+    email: EmailStr
     name: str
     password: str = Field(..., min_length=8)
 
@@ -16,6 +16,7 @@ class UserCreate(BaseModel):
     fakultas: str
     angkatan: int
 
+   
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
@@ -38,6 +39,30 @@ class UserCreate(BaseModel):
         if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
             raise ValueError('Harus ada karakter spesial')
         return v
+    
+    @field_validator('nim')
+    @classmethod
+    def validate_nim(cls, v):
+
+        if not v.isdigit():
+            raise ValueError('NIM hanya boleh angka')
+
+        if len(v) < 8:
+            raise ValueError('NIM tidak valid')
+
+        return v
+    
+    @field_validator('angkatan')
+    @classmethod
+    def validate_angkatan(cls, v):
+
+        if v < 2021:
+            raise ValueError('Angkatan tidak valid')
+
+        if v > 2026:
+            raise ValueError('Angkatan tidak valid')
+
+        return v
 
 
 class UserResponse(BaseModel):
@@ -58,7 +83,7 @@ class UserResponse(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: str
+    email: EmailStr
     password: str
 
 
