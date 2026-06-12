@@ -2,7 +2,7 @@
 
 ## Overview
 
-Pada Milestone 3, aplikasi Cloud App mengalami transformasi dari arsitektur monolith menjadi arsitektur microservices. Setiap layanan memiliki tanggung jawab yang spesifik, database terpisah, dan dapat dijalankan secara independen.
+Pada Milestone 3, aplikasi SIPILIH mengalami transformasi dari arsitektur monolith menjadi arsitektur microservices. Setiap layanan memiliki tanggung jawab yang spesifik, database terpisah, dan dapat dijalankan secara independen.
 
 ---
 
@@ -234,3 +234,39 @@ docker compose logs item-db
 * Memudahkan scaling sesuai kebutuhan.
 * Mengurangi dampak kegagalan pada seluruh sistem.
 * Mendukung pengembangan oleh banyak tim secara paralel.
+
+## Reliability Features
+
+### Retry Mechanism
+
+Item Service menggunakan retry mechanism dengan exponential backoff ketika melakukan komunikasi ke Auth Service.
+
+Konfigurasi:
+
+* Maximum Retry: 3
+* Delay: 0.5s → 1s → 2s
+* Timeout: 5 detik
+
+### Circuit Breaker
+
+Circuit breaker digunakan untuk mencegah cascading failure saat Auth Service tidak dapat diakses.
+
+State yang digunakan:
+
+* CLOSED (normal operation)
+* OPEN (service unavailable)
+* HALF_OPEN (recovery testing)
+
+### Health Monitoring
+
+Setiap service menyediakan endpoint health check untuk memantau kondisi layanan dan dependency.
+
+Contoh endpoint:
+
+```http
+GET /health
+```
+
+### Graceful Recovery
+
+Setelah service yang gagal kembali aktif, circuit breaker akan melakukan proses recovery secara otomatis dan mengembalikan sistem ke kondisi normal.
