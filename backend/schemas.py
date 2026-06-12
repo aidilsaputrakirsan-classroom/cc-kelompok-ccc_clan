@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field, field_validator, EmailStr
-from typing import Optional
 from datetime import datetime
+from typing import Optional
 import re
+
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
 
 # ==================== ITEM ====================
 class ItemBase(BaseModel):
@@ -38,6 +40,21 @@ class ItemListResponse(BaseModel):
     items: list[ItemResponse]
 
 
+# ==================== ACADEMIC ====================
+class AcademicDepartmentResponse(BaseModel):
+    nama: str
+    prodi: list[str]
+
+
+class AcademicFacultyResponse(BaseModel):
+    fakultas: str
+    jurusan: list[AcademicDepartmentResponse]
+
+
+class AcademicStructureResponse(BaseModel):
+    faculties: list[AcademicFacultyResponse]
+
+
 # ==================== USER ====================
 class UserCreate(BaseModel):
     email: str
@@ -50,27 +67,27 @@ class UserCreate(BaseModel):
     fakultas: str
     angkatan: int
 
-    @field_validator('email')
+    @field_validator("email")
     @classmethod
     def validate_email(cls, v):
-        pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+        pattern = r"^[\w\.-]+@[\w\.-]+\.\w+$"
         if not re.match(pattern, v):
-            raise ValueError('Format email tidak valid')
+            raise ValueError("Format email tidak valid")
         return v.lower()
 
-    @field_validator('password')
+    @field_validator("password")
     @classmethod
     def validate_password(cls, v):
         if len(v) < 8:
-            raise ValueError('Password minimal 8 karakter')
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('Harus ada huruf besar')
-        if not re.search(r'[a-z]', v):
-            raise ValueError('Harus ada huruf kecil')
-        if not re.search(r'[0-9]', v):
-            raise ValueError('Harus ada angka')
-        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
-            raise ValueError('Harus ada karakter spesial')
+            raise ValueError("Password minimal 8 karakter")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Harus ada huruf besar")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Harus ada huruf kecil")
+        if not re.search(r"[0-9]", v):
+            raise ValueError("Harus ada angka")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("Harus ada karakter spesial")
         return v
 
 
@@ -89,6 +106,7 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class UserVerificationUpdate(BaseModel):
     is_active: bool
@@ -150,6 +168,7 @@ class CandidateUpdate(BaseModel):
     visi: Optional[str] = None
     misi: Optional[str] = None
     inovasi: Optional[str] = None
+    status: Optional[str] = None
 
 
 class CandidateResponse(CandidateBase):
@@ -162,10 +181,36 @@ class CandidateResponse(CandidateBase):
 
 
 # ==================== VOTE ====================
-
 class VoteResponse(BaseModel):
     message: str
+    candidate_id: int
+    category_key: str
+
+
+class VoteStatusItem(BaseModel):
+    category_key: str
+    candidate_id: int
+    candidate_name: str
+    posisi: str
+    level: str
+    scope: str
+    created_at: datetime
+
+
+class VoteStatusResponse(BaseModel):
+    voted_categories: list[str]
+    votes: list[VoteStatusItem]
+
 
 class VoteResultResponse(BaseModel):
     candidate_id: int
+    candidate_name: str
+    posisi: str
+    fakultas: str
+    jurusan: str
+    prodi: str
+    category_key: str
+    category_label: str
+    level: str
+    scope: str
     total_votes: int

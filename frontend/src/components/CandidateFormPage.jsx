@@ -1,35 +1,21 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import AdminNavbar from "./AdminNavbar";
 import Toast from "./Toast";
 import {
   createCandidate,
+  getAcademicStructure,
   getAdminCandidates,
   updateCandidate,
 } from "../services/api";
-
-const POSITION_OPTIONS = [
-  {
-    value: "ketua bem km",
-    label: "Ketua BEM KM",
-  },
-  {
-    value: "dpm km",
-    label: "DPM KM",
-  },
-  {
-    value: "ketua bem fakultas",
-    label: "Ketua BEM Fakultas",
-  },
-  {
-    value: "dpm fakultas",
-    label: "DPM Fakultas",
-  },
-  {
-    value: "ketua himpunan",
-    label: "Ketua Himpunan",
-  },
-];
+import {
+  ACADEMIC_STRUCTURE,
+  getDepartmentOptions,
+  getFacultyOptions,
+  getProgramOptions,
+  normalizeAcademicStructure,
+} from "../utils/academic";
+import { POSITION_OPTIONS } from "../utils/voting";
 
 function CandidateFormPage() {
   const navigate = useNavigate();
@@ -38,14 +24,15 @@ function CandidateFormPage() {
   const isEditMode = Boolean(id);
 
   const [step, setStep] = useState(1);
+  const [academicStructure, setAcademicStructure] = useState(ACADEMIC_STRUCTURE);
 
   const [form, setForm] = useState({
     nama: "",
     nim: "",
     email: "",
-    prodi: "",
-    jurusan: "",
     fakultas: "",
+    jurusan: "",
+    prodi: "",
     posisi: "",
     visi: "",
     misi: "",
@@ -62,29 +49,45 @@ function CandidateFormPage() {
     message: "",
   });
 
+  const facultyOptions = useMemo(
+    () => getFacultyOptions(academicStructure),
+    [academicStructure]
+  );
+
+  const departmentOptions = useMemo(
+    () => getDepartmentOptions(academicStructure, form.fakultas),
+    [academicStructure, form.fakultas]
+  );
+
+  const programOptions = useMemo(
+    () => getProgramOptions(academicStructure, form.fakultas, form.jurusan),
+    [academicStructure, form.fakultas, form.jurusan]
+  );
+
   const showToast = (type, message) => {
-    setToast({
-      show: true,
-      type,
-      message,
-    });
+    setToast({ show: true, type, message });
 
     setTimeout(() => {
-      setToast({
-        show: false,
-        type: "success",
-        message: "",
-      });
+      setToast({ show: false, type: "success", message: "" });
     }, 2500);
   };
 
   const closeToast = () => {
-    setToast({
-      show: false,
-      type: "success",
-      message: "",
-    });
+    setToast({ show: false, type: "success", message: "" });
   };
+
+  useEffect(() => {
+    const loadAcademicData = async () => {
+      try {
+        const data = await getAcademicStructure();
+        setAcademicStructure(normalizeAcademicStructure(data));
+      } catch {
+        setAcademicStructure(ACADEMIC_STRUCTURE);
+      }
+    };
+
+    loadAcademicData();
+  }, []);
 
   useEffect(() => {
     if (!isEditMode) return;
@@ -108,9 +111,9 @@ function CandidateFormPage() {
           nama: selectedCandidate.nama || "",
           nim: selectedCandidate.nim || "",
           email: selectedCandidate.email || "",
-          prodi: selectedCandidate.prodi || "",
-          jurusan: selectedCandidate.jurusan || "",
           fakultas: selectedCandidate.fakultas || "",
+          jurusan: selectedCandidate.jurusan || "",
+          prodi: selectedCandidate.prodi || "",
           posisi: selectedCandidate.posisi?.toLowerCase() || "",
           visi: selectedCandidate.visi || "",
           misi: selectedCandidate.misi || "",
@@ -126,50 +129,121 @@ function CandidateFormPage() {
     fetchCandidateForEdit();
   }, [id, isEditMode]);
 
-  const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    if (name === "fakultas") {
+      setForm((prev) => ({
+        ...prev,
+        fakultas: value,
+        jurusan: "",
+        prodi: "",
+      }));
+      return;
+    }
+
+    if (name === "jurusan") {
+      setForm((prev) => ({
+        ...prev,
+        jurusan: value,
+        prodi: "",
+      }));
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const validateStep = (currentStep) => {
+    if (currentStep === 1) {
+      if (!form.nama.trim()) return "Nama kandidat wajib diisi.";
+      if (!form.nim.trim()) return "NIM kandidat wajib diisi.";
+      if (!form.email.trim()) return "Email kandidat wajib diisi.";
+      if (!form.posisi) return "Posisi kandidat wajib dipilih.";
+      return "";
+    }
+
+    if (currentStep === 2) {
+      if (!form.fakultas) return "Fakultas wajib dipilih.";
+      if (!form.jurusan) return "Jurusan wajib dipilih.";
+      if (!form.prodi) return "Prodi wajib dipilih.";
+      return "";
+    }
+
+    if (currentStep === 3) {
+      if (!form.visi.trim()) return "Visi wajib diisi.";
+      if (!form.misi.trim()) return "Misi wajib diisi.";
+      if (!form.inovasi.trim()) return "Inovasi wajib diisi.";
+      return "";
+    }
+
+    return "";
   };
 
   const handleNextStep = () => {
-    setStep(2);
-  };
+    const validationMessage = validateStep(step);
 
-  const handlePrevStep = () => {
-    setStep(1);
-  };
+    if (validationMessage) {
+      setError(validationMessage);
+      return;
+    }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
     setError("");
+    setStep((prev) => Math.min(prev + 1, 3));
+  };
+
+  const handlePreviousStep = () => {
+    setError("");
+    setStep((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    const allStepError = validateStep(1) || validateStep(2) || validateStep(3);
+    if (allStepError) {
+      setError(allStepError);
+      return;
+    }
 
     try {
+      setLoading(true);
+      setError("");
+
       if (isEditMode) {
         await updateCandidate(id, form);
-        showToast("success", "Kandidat berhasil diperbarui.");
+        showToast("success", "Data kandidat berhasil diperbarui.");
       } else {
         await createCandidate(form);
-        showToast("success", "Kandidat berhasil ditambahkan.");
+        showToast("success", "Data kandidat berhasil ditambahkan.");
       }
 
       setTimeout(() => {
-        navigate("/candidates");
-      }, 1000);
+        navigate("/admin/candidates");
+      }, 900);
     } catch (err) {
-      if (err.message === "UNAUTHORIZED") {
-        setError("Sesi tidak valid. Silakan login ulang.");
-        showToast("error", "Sesi tidak valid. Silakan login ulang.");
-      } else {
-        setError(err.message || "Gagal menyimpan kandidat");
-        showToast("error", err.message || "Gagal menyimpan kandidat");
-      }
+      setError(err.message || "Gagal menyimpan data kandidat.");
+      showToast("error", err.message || "Gagal menyimpan data kandidat.");
     } finally {
       setLoading(false);
     }
   };
+
+  if (pageLoading) {
+    return (
+      <>
+        <AdminNavbar />
+        <main className="candidate-form-page">
+          <section className="form-card">
+            <p className="info-message">Memuat data kandidat...</p>
+          </section>
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
@@ -182,215 +256,243 @@ function CandidateFormPage() {
         onClose={closeToast}
       />
 
-      <div className="candidate-form-page">
-        <div className="form-card">
+      <main className="candidate-form-page">
+        <section className="form-card">
           <div className="form-page-header">
             <div>
               <h1>{isEditMode ? "Edit Kandidat" : "Tambah Kandidat"}</h1>
               <p>
-                {isEditMode
-                  ? "Perbarui data kandidat sesuai kebutuhan sistem."
-                  : "Isi data kandidat sesuai kebutuhan sistem."}
+                Lengkapi data kandidat dengan pilihan fakultas, jurusan, dan prodi
+                yang sudah tersinkron dari struktur akademik.
               </p>
             </div>
 
-            <Link to="/candidates" className="btn btn-outline">
+            <Link to="/admin/candidates" className="btn btn-outline">
               Kembali
             </Link>
           </div>
 
-          {pageLoading ? (
-            <p className="info-message">Loading data kandidat...</p>
-          ) : (
-            <>
-              <div className="form-step-tabs">
-                <button
-                  type="button"
-                  className={step === 1 ? "step-tab step-tab-active" : "step-tab"}
-                  onClick={() => setStep(1)}
-                >
-                  1. Biodata Kandidat
-                </button>
+          <div className="form-step-tabs">
+            <button
+              type="button"
+              className={`step-tab ${step === 1 ? "step-tab-active" : ""}`}
+              onClick={() => setStep(1)}
+            >
+              1. Identitas
+            </button>
+            <button
+              type="button"
+              className={`step-tab ${step === 2 ? "step-tab-active" : ""}`}
+              onClick={() => setStep(2)}
+            >
+              2. Akademik
+            </button>
+            <button
+              type="button"
+              className={`step-tab ${step === 3 ? "step-tab-active" : ""}`}
+              onClick={() => setStep(3)}
+            >
+              3. Visi Misi
+            </button>
+          </div>
 
-                <button
-                  type="button"
-                  className={step === 2 ? "step-tab step-tab-active" : "step-tab"}
-                  onClick={() => setStep(2)}
-                >
-                  2. Visi, Misi, Inovasi
-                </button>
+          <form className="candidate-form" onSubmit={handleSubmit}>
+            {step === 1 && (
+              <div className="form-step-section">
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Nama Kandidat</label>
+                    <input
+                      type="text"
+                      name="nama"
+                      placeholder="Masukkan nama kandidat"
+                      value={form.nama}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>NIM</label>
+                    <input
+                      type="text"
+                      name="nim"
+                      placeholder="Masukkan NIM kandidat"
+                      value={form.nim}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="Masukkan email kandidat"
+                      value={form.email}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Posisi</label>
+                    <select name="posisi" value={form.posisi} onChange={handleChange}>
+                      <option value="">Pilih posisi kandidat</option>
+                      {POSITION_OPTIONS.map((item) => (
+                        <option key={item.value} value={item.value}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
+            )}
 
-              <form className="candidate-form" onSubmit={handleSubmit}>
-                {step === 1 && (
-                  <div className="form-step-section">
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>Nama</label>
-                        <input
-                          type="text"
-                          name="nama"
-                          placeholder="Masukkan nama kandidat"
-                          value={form.nama}
-                          onChange={handleChange}
-                        />
-                      </div>
+            {step === 2 && (
+              <div className="form-step-section">
+                <div className="info-box compact-info-box">
+                  <strong>Data akademik dipakai untuk hak pilih</strong>
+                  <p>
+                    Kandidat KM bisa dipilih semua pemilih. Kandidat fakultas,
+                    jurusan, dan prodi hanya tampil untuk pemilih pada lingkup yang sama.
+                  </p>
+                </div>
 
-                      <div className="form-group">
-                        <label>NIM</label>
-                        <input
-                          type="text"
-                          name="nim"
-                          placeholder="Masukkan NIM"
-                          value={form.nim}
-                          onChange={handleChange}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>Email</label>
-                        <input
-                          type="email"
-                          name="email"
-                          placeholder="Masukkan email"
-                          value={form.email}
-                          onChange={handleChange}
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label>Posisi yang Didaftarkan</label>
-                        <select
-                          name="posisi"
-                          value={form.posisi}
-                          onChange={handleChange}
-                        >
-                          <option value="">Pilih posisi kandidat</option>
-                          {POSITION_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>Prodi</label>
-                        <input
-                          type="text"
-                          name="prodi"
-                          placeholder="Masukkan prodi"
-                          value={form.prodi}
-                          onChange={handleChange}
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label>Jurusan</label>
-                        <input
-                          type="text"
-                          name="jurusan"
-                          placeholder="Masukkan jurusan"
-                          value={form.jurusan}
-                          onChange={handleChange}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Fakultas</label>
-                      <input
-                        type="text"
-                        name="fakultas"
-                        placeholder="Masukkan fakultas"
-                        value={form.fakultas}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    <div className="form-navigation">
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={handleNextStep}
-                      >
-                        Lanjut
-                      </button>
-                    </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Fakultas</label>
+                    <select name="fakultas" value={form.fakultas} onChange={handleChange}>
+                      <option value="">Pilih fakultas</option>
+                      {facultyOptions.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                )}
 
-                {step === 2 && (
-                  <div className="form-step-section">
-                    <div className="form-group">
-                      <label>Visi</label>
-                      <textarea
-                        rows="4"
-                        name="visi"
-                        placeholder="Masukkan visi kandidat"
-                        value={form.visi}
-                        onChange={handleChange}
-                      ></textarea>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Misi</label>
-                      <textarea
-                        rows="4"
-                        name="misi"
-                        placeholder="Masukkan misi kandidat"
-                        value={form.misi}
-                        onChange={handleChange}
-                      ></textarea>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Inovasi</label>
-                      <textarea
-                        rows="4"
-                        name="inovasi"
-                        placeholder="Masukkan inovasi kandidat"
-                        value={form.inovasi}
-                        onChange={handleChange}
-                      ></textarea>
-                    </div>
-
-                    {error && <p className="error-text">{error}</p>}
-
-                    <div className="form-navigation">
-                      <button
-                        type="button"
-                        className="btn btn-outline"
-                        onClick={handlePrevStep}
-                      >
-                        Kembali
-                      </button>
-
-                      <button
-                        type="submit"
-                        className="btn btn-primary"
-                        disabled={loading}
-                      >
-                        {loading
-                          ? isEditMode
-                            ? "Menyimpan perubahan..."
-                            : "Menyimpan..."
-                          : isEditMode
-                          ? "Update Kandidat"
-                          : "Simpan Kandidat"}
-                      </button>
-                    </div>
+                  <div className="form-group">
+                    <label>Jurusan</label>
+                    <select
+                      name="jurusan"
+                      value={form.jurusan}
+                      onChange={handleChange}
+                      disabled={!form.fakultas}
+                    >
+                      <option value="">Pilih jurusan</option>
+                      {departmentOptions.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                )}
-              </form>
-            </>
-          )}
-        </div>
-      </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Prodi</label>
+                    <select
+                      name="prodi"
+                      value={form.prodi}
+                      onChange={handleChange}
+                      disabled={!form.jurusan}
+                    >
+                      <option value="">Pilih prodi</option>
+                      {programOptions.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Ringkasan Target Hak Pilih</label>
+                    <input
+                      type="text"
+                      value={
+                        form.posisi
+                          ? POSITION_OPTIONS.find((item) => item.value === form.posisi)?.label || form.posisi
+                          : "Pilih posisi terlebih dahulu"
+                      }
+                      disabled
+                      readOnly
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="form-step-section">
+                <div className="form-group">
+                  <label>Visi</label>
+                  <textarea
+                    name="visi"
+                    rows="4"
+                    placeholder="Tuliskan visi kandidat"
+                    value={form.visi}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Misi</label>
+                  <textarea
+                    name="misi"
+                    rows="5"
+                    placeholder="Tuliskan misi kandidat"
+                    value={form.misi}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Inovasi</label>
+                  <textarea
+                    name="inovasi"
+                    rows="5"
+                    placeholder="Tuliskan inovasi kandidat"
+                    value={form.inovasi}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+            )}
+
+            {error && <p className="error-text">{error}</p>}
+
+            <div className="form-navigation">
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={handlePreviousStep}
+                disabled={step === 1 || loading}
+              >
+                Sebelumnya
+              </button>
+
+              {step < 3 ? (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleNextStep}
+                  disabled={loading}
+                >
+                  Selanjutnya
+                </button>
+              ) : (
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? "Menyimpan..." : isEditMode ? "Update Kandidat" : "Simpan Kandidat"}
+                </button>
+              )}
+            </div>
+          </form>
+        </section>
+      </main>
     </>
   );
 }

@@ -1,50 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminNavbar from "./AdminNavbar";
 import Toast from "./Toast";
-import { getPublicCandidates, getVoteResults } from "../services/api";
-
-const POSITION_ORDER = [
-  "ketua bem km",
-  "dpm km",
-  "ketua bem fakultas",
-  "dpm fakultas",
-  "ketua himpunan",
-];
-
-const POSITION_LABELS = {
-  "ketua bem km": "Ketua BEM KM",
-  "dpm km": "DPM KM",
-  "ketua bem fakultas": "Ketua BEM Fakultas",
-  "dpm fakultas": "DPM Fakultas",
-  "ketua himpunan": "Ketua Himpunan",
-};
-
-function normalizePosition(position) {
-  return (position || "lainnya").toLowerCase().trim();
-}
-
-function getPositionLabel(position) {
-  const normalized = normalizePosition(position);
-  return POSITION_LABELS[normalized] || position || "Lainnya";
-}
+import { getVoteResults } from "../services/api";
+import { groupCandidatesByVotingCategory } from "../utils/voting";
 
 function VoteResultsPage() {
-  const [candidates, setCandidates] = useState([]);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const [toast, setToast] = useState({
-    show: false,
-    type: "success",
-    message: "",
-  });
+  const [toast, setToast] = useState({ show: false, type: "success", message: "" });
 
   const closeToast = () => {
-    setToast({
-      show: false,
-      type: "success",
-      message: "",
-    });
+    setToast({ show: false, type: "success", message: "" });
   };
 
   useEffect(() => {
@@ -52,12 +18,7 @@ function VoteResultsPage() {
       setLoading(true);
 
       try {
-        const [candidateData, resultData] = await Promise.all([
-          getPublicCandidates(),
-          getVoteResults(),
-        ]);
-
-        setCandidates(Array.isArray(candidateData) ? candidateData : []);
+        const resultData = await getVoteResults();
         setResults(Array.isArray(resultData) ? resultData : []);
       } catch (err) {
         setToast({
@@ -74,57 +35,23 @@ function VoteResultsPage() {
   }, []);
 
   const groupedResults = useMemo(() => {
-    const voteMap = {};
+    const candidates = results.map((item) => ({
+      id: item.candidate_id,
+      nama: item.candidate_name,
+      posisi: item.posisi,
+      fakultas: item.fakultas,
+      jurusan: item.jurusan,
+      prodi: item.prodi,
+      category_key: item.category_key,
+      category_label: item.category_label,
+      level: item.level,
+      scope: item.scope,
+      total_votes: Number(item.total_votes || 0),
+    }));
 
-    results.forEach((result) => {
-      voteMap[Number(result.candidate_id)] = Number(result.total_votes || 0);
-    });
-
-    const mergedCandidates = candidates.map((candidate) => {
-      return {
-        ...candidate,
-        total_votes: voteMap[Number(candidate.id)] || 0,
-      };
-    });
-
-    const groups = {};
-
-    mergedCandidates.forEach((candidate) => {
-      const key = normalizePosition(candidate.posisi);
-
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-
-      groups[key].push(candidate);
-    });
-
-    const orderedGroups = [];
-
-    POSITION_ORDER.forEach((positionKey) => {
-      if (groups[positionKey]?.length) {
-        orderedGroups.push({
-          key: positionKey,
-          label: getPositionLabel(positionKey),
-          candidates: groups[positionKey],
-        });
-      }
-    });
-
-    Object.keys(groups)
-      .filter((key) => !POSITION_ORDER.includes(key))
-      .sort()
-      .forEach((key) => {
-        orderedGroups.push({
-          key,
-          label: getPositionLabel(key),
-          candidates: groups[key],
-        });
-      });
-
-    return orderedGroups.map((group) => {
+    return groupCandidatesByVotingCategory(candidates).map((group) => {
       const totalCategoryVotes = group.candidates.reduce(
-        (total, candidate) => total + candidate.total_votes,
+        (total, candidate) => total + Number(candidate.total_votes || 0),
         0
       );
 
@@ -134,17 +61,19 @@ function VoteResultsPage() {
         candidates: group.candidates.map((candidate) => {
           const percentage =
             totalCategoryVotes > 0
-              ? Math.round((candidate.total_votes / totalCategoryVotes) * 100)
+              ? Math.round((Number(candidate.total_votes || 0) / totalCategoryVotes) * 100)
               : 0;
 
-          return {
-            ...candidate,
-            percentage,
-          };
+          return { ...candidate, percentage };
         }),
       };
     });
-  }, [candidates, results]);
+  }, [results]);
+
+  const totalVotes = useMemo(
+    () => results.reduce((sum, item) => sum + Number(item.total_votes || 0), 0),
+    [results]
+  );
 
   return (
     <>
@@ -157,15 +86,34 @@ function VoteResultsPage() {
         onClose={closeToast}
       />
 
-      <div className="candidates-page">
+      <main className="candidates-page">
         <section className="candidate-hero">
           <div>
             <span className="candidate-badge">Hasil Voting</span>
             <h1>Rekapitulasi Voting</h1>
             <p>
-              Hasil voting ditampilkan berdasarkan kategori pemilihan agar
-              perolehan suara setiap posisi lebih mudah dibaca.
+              Hasil voting ditampilkan berdasarkan kategori KM, fakultas, jurusan,
+              dan prodi agar perolehan suara setiap lingkup lebih mudah dibaca.
             </p>
+          </div>
+        </section>
+
+        <section className="user-stats-grid voting-stats-grid">
+          <div className="user-stat-card">
+            <span>Total Kategori</span>
+            <strong>{groupedResults.length}</strong>
+          </div>
+          <div className="user-stat-card">
+            <span>Total Kandidat</span>
+            <strong>{results.length}</strong>
+          </div>
+          <div className="user-stat-card">
+            <span>Total Suara</span>
+            <strong>{totalVotes}</strong>
+          </div>
+          <div className="user-stat-card">
+            <span>Status</span>
+            <strong>{loading ? "Loading" : "Aktif"}</strong>
           </div>
         </section>
 
@@ -199,7 +147,7 @@ function VoteResultsPage() {
                 <section className="voting-category" key={group.key}>
                   <div className="voting-category-header">
                     <div>
-                      <span>Kategori</span>
+                      <span>{group.levelLabel}</span>
                       <h4>{group.label}</h4>
                     </div>
 
@@ -211,7 +159,7 @@ function VoteResultsPage() {
                       <thead>
                         <tr>
                           <th>Kandidat</th>
-                          <th>Program Studi</th>
+                          <th>Lingkup Akademik</th>
                           <th>Jumlah Suara</th>
                           <th>Persentase</th>
                         </tr>
@@ -223,19 +171,23 @@ function VoteResultsPage() {
                             <td>
                               <div className="candidate-name-cell">
                                 <div className="candidate-mini-avatar">
-                                  {candidate.nama
-                                    ? candidate.nama.charAt(0).toUpperCase()
-                                    : "K"}
+                                  {candidate.nama?.charAt(0)?.toUpperCase() || "K"}
                                 </div>
 
                                 <div>
                                   <strong>{candidate.nama}</strong>
-                                  <span>{candidate.email}</span>
+                                  <span>{candidate.posisi}</span>
                                 </div>
                               </div>
                             </td>
 
-                            <td>{candidate.prodi || "-"}</td>
+                            <td>
+                              <div className="user-academic-cell">
+                                <span>{candidate.scope || candidate.prodi || "-"}</span>
+                                <small>{candidate.jurusan || "-"}</small>
+                                <small>{candidate.fakultas || "-"}</small>
+                              </div>
+                            </td>
 
                             <td>
                               <strong>{candidate.total_votes} suara</strong>
@@ -247,9 +199,7 @@ function VoteResultsPage() {
                                 <div className="vote-result-bar">
                                   <div
                                     className="vote-result-fill"
-                                    style={{
-                                      width: `${candidate.percentage}%`,
-                                    }}
+                                    style={{ width: `${candidate.percentage}%` }}
                                   />
                                 </div>
                               </div>
@@ -264,7 +214,7 @@ function VoteResultsPage() {
             </div>
           )}
         </section>
-      </div>
+      </main>
     </>
   );
 }
