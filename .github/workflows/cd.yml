@@ -55,7 +55,7 @@ jobs:
       # Set URL output untuk dipakai job berikutnya
       - name: Set backend URL
         id: set-url
-        run: echo "url=backendcc-kelompok-cccclan-production.up.railway.app" >> $GITHUB_OUTPUT
+        run: echo "url=https://backendcc-kelompok-cccclan-production.up.railway.app" >> $GITHUB_OUTPUT
 
 
   # ================================================================
@@ -85,7 +85,7 @@ jobs:
 
       - name: Set frontend URL
         id: set-url
-        run: echo "url=frontendcc-kelompok-cccclan-production.up.railway.app" >> $GITHUB_OUTPUT
+        run: echo "url=https://frontendcc-kelompok-cccclan-production.up.railway.app" >> $GITHUB_OUTPUT
 
 
   # ================================================================
@@ -120,7 +120,7 @@ jobs:
             ATTEMPT=$((ATTEMPT + 1))
             echo "--- Percobaan $ATTEMPT dari $MAX_RETRY..."
 
-            HTTP_STATUS=$(curl -s -o /tmp/health_response.json -w "%{http_code}" \
+            HTTP_STATUS=$(curl -sL -o /tmp/health_response.json -w "%{http_code}" \
               --max-time 10 \
               "$BACKEND_URL/health" || echo "000")
 
