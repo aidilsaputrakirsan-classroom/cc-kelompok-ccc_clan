@@ -30,25 +30,37 @@ Dalam implementasinya, SIPILIH membagi hak akses pengguna ke dalam beberapa pera
 ## 🏗️ Architecture
 
 ```
-                   ┌──────────────┐
-                   │   Frontend   │
-                   └──────┬───────┘
-                          │
-                          ▼
-                   ┌──────────────┐
-                   │   Gateway    │
-                   └──────┬───────┘
-                          │
-        ┌─────────────────┼─────────────────┐
-        ▼                 ▼                 ▼
- ┌────────────┐   ┌────────────┐   ┌────────────┐
- │Auth Service│   │Candidate   │   │Vote Service│
- │            │   │ Service    │   │            │
- └─────┬──────┘   └─────┬──────┘   └─────┬──────┘
-       │                │                │
-       ▼                ▼                ▼
-  PostgreSQL      PostgreSQL      PostgreSQL
+                    Frontend
+                        │
+                        ▼
+
+                ┌─────────────┐
+                │   Gateway   │
+                └──────┬──────┘
+                       │
+        ┌──────────────┴──────────────┐
+        ▼                             ▼
+
+   Auth Service              Candidate Service
+
+        │                             │
+        ▼                             ▼
+
+    Auth DB                   Candidate DB
+
+                       │
+                       ▼
+
+                Backend Monolith
+                (Legacy Services)
+
+                       │
+                       ▼
+
+                  PostgreSQL
 ```
+
+SIPILIH saat ini menggunakan pendekatan hybrid architecture. Beberapa fitur telah dipisahkan ke dalam service terpisah seperti Auth Service dan Candidate Service untuk mendukung konsep microservices. Namun, sistem masih mempertahankan backend utama (monolith) untuk beberapa fungsi yang belum sepenuhnya dipisahkan. Pendekatan ini digunakan sebagai tahap transisi menuju arsitektur yang lebih terdistribusi.
 
 ## 🌐 Live Demo
 
@@ -200,7 +212,7 @@ Railway Production
 
 ## 📊 Monitoring & Observability
 
-SiPilih menerapkan konsep observability untuk membantu proses monitoring, debugging, dan troubleshooting pada lingkungan microservices.
+SiPilih menerapkan konsep observability untuk membantu proses monitoring, debugging, dan troubleshooting pada lingkungan hybrid architecture yang terdiri dari backend utama serta beberapa service terpisah.
 
 ### Structured Logging
 
@@ -1080,6 +1092,12 @@ Proyek SiPilih dikembangkan secara bertahap melalui beberapa milestone:
 cc-kelompok-ccc_clan/
 │
 ├── backend/
+│   ├── main.py
+│   ├── auth.py
+│   ├── crud.py
+│   ├── models.py
+│   ├── database.py
+│   │
 │   ├── services/
 │   │   ├── auth-service/
 │   │   │   ├── main.py
@@ -1113,7 +1131,9 @@ cc-kelompok-ccc_clan/
 │   ├── deployment-guide.md
 │   ├── operations-guide.md
 │   ├── production-test.md
-│   └── reliability-testing.md
+│   ├── reliability-testing.md
+│   ├── api-contract.md
+│   └── release-notes-m3.md
 │
 ├── .github/
 │   └── workflows/

@@ -1,8 +1,10 @@
-# Microservices Architecture
+# Hybrid Architecture
 
 ## Overview
 
-Pada Milestone 3, aplikasi SIPILIH mengalami transformasi dari arsitektur monolith menjadi arsitektur microservices. Setiap layanan memiliki tanggung jawab yang spesifik, database terpisah, dan dapat dijalankan secara independen.
+Pada Milestone 3, aplikasi SIPILIH mulai mengadopsi pendekatan service decomposition sebagai langkah menuju arsitektur microservices. Beberapa komponen utama telah dipisahkan menjadi service tersendiri, seperti Auth Service dan Candidate Service, sementara backend utama (monolith) masih digunakan untuk beberapa fitur yang belum sepenuhnya dipisahkan.
+
+Pendekatan hybrid ini memungkinkan pengembangan dilakukan secara bertahap tanpa mengganggu fitur yang telah berjalan sebelumnya.
 
 ---
 
@@ -10,175 +12,92 @@ Pada Milestone 3, aplikasi SIPILIH mengalami transformasi dari arsitektur monoli
 
 ```mermaid
 flowchart TD
+
     USER["User Browser"] --> GW["API Gateway (Nginx)"]
 
     GW --> AUTH["Auth Service"]
-    GW --> ITEM["Item Service"]
+    GW --> CAND["Candidate Service"]
+    GW --> BACKEND["Main Backend"]
     GW --> FE["Frontend"]
 
     AUTH --> AUTHDB[("Auth Database")]
-    ITEM --> ITEMDB[("Item Database")]
+    CAND --> CANDDB[("Candidate Database")]
+    BACKEND --> MAINDB[("Main Database")]
 
-    ITEM -.->|"HTTP Request"| AUTH
+    CAND -.->|"Verify Token"| AUTH
 ```
 
 ---
 
 ## Services
 
-| Service       | Port | Responsibility       |
-| ------------- | ---- | -------------------- |
-| Frontend      | 3000 | User Interface       |
-| API Gateway   | 80   | Request Routing      |
-| Auth Service  | 8001 | Authentication & JWT |
-| Item Service  | 8002 | CRUD Item Management |
-| Auth Database | 5432 | User Data            |
-| Item Database | 5432 | Item Data            |
+| Service            | Port | Responsibility             |
+| ------------------ | ---- | -------------------------- |
+| Frontend           | 3000 | User Interface             |
+| API Gateway        | 80   | Request Routing            |
+| Main Backend       | 8000 | Legacy Features & Core API |
+| Auth Service       | 8001 | Authentication & JWT       |
+| Candidate Service  | 8002 | Candidate Management       |
+| Main Database      | 5433 | Core Application Data      |
+| Auth Database      | 5434 | Authentication Data        |
+| Candidate Database | 5435 | Candidate Data             |
 
 ---
 
-## Database Per Service
+## Service Responsibilities
 
-### Auth Service Database
+### Main Backend
 
-Menyimpan data pengguna seperti email, nama, dan password yang telah di-hash.
-
-### Item Service Database
-
-Menyimpan data item, harga, jumlah stok, dan owner item.
-
-Setiap service hanya dapat mengakses databasenya sendiri untuk menjaga independensi dan loose coupling.
-
----
-
-## API Contract
+Backend utama yang masih menangani beberapa fitur inti aplikasi dan fungsi yang belum dipisahkan ke service tersendiri.
 
 ### Auth Service
 
-#### Register User
+Bertanggung jawab terhadap:
 
-```http
-POST /register
-```
+* User Registration
+* Login
+* JWT Generation
+* Token Verification
+* User Authentication
 
-Request:
+### Candidate Service
 
-```json
-{
-  "email": "user@example.com",
-  "password": "password123",
-  "name": "User"
-}
-```
+Bertanggung jawab terhadap:
 
-Response:
+* Candidate Management
+* Candidate Statistics
+* Candidate Information
+* Admin Candidate Operations
 
-```json
-{
-  "id": 1,
-  "email": "user@example.com",
-  "name": "User"
-}
-```
+### API Gateway
 
----
-
-#### Login User
-
-```http
-POST /login
-```
-
-Response:
-
-```json
-{
-  "access_token": "jwt-token",
-  "token_type": "bearer"
-}
-```
-
----
-
-#### Verify Token
-
-```http
-GET /verify
-```
-
-Header:
-
-```http
-Authorization: Bearer <token>
-```
-
-Response:
-
-```json
-{
-  "user_id": 1,
-  "email": "user@example.com",
-  "name": "User"
-}
-```
-
----
-
-### Item Service
-
-#### Create Item
-
-```http
-POST /items
-```
-
-#### Get Items
-
-```http
-GET /items
-```
-
-#### Get Item By ID
-
-```http
-GET /items/{id}
-```
-
-#### Update Item
-
-```http
-PUT /items/{id}
-```
-
-#### Delete Item
-
-```http
-DELETE /items/{id}
-```
+Bertindak sebagai entry point untuk seluruh request yang masuk ke sistem serta melakukan routing ke service yang sesuai.
 
 ---
 
 ## Inter-Service Communication
 
-Item Service tidak mengakses database Auth Service secara langsung. Verifikasi token dilakukan dengan melakukan HTTP Request ke endpoint `/verify` pada Auth Service.
+Candidate Service tidak melakukan autentikasi secara mandiri.
 
-Contoh:
+Untuk memverifikasi pengguna, Candidate Service mengirim request ke Auth Service melalui endpoint verifikasi token.
+
+Contoh alur komunikasi:
 
 ```text
-Item Service
-      ↓
+Candidate Service
+        ↓
 GET /verify
-      ↓
+        ↓
 Auth Service
-      ↓
-User Data Returned
+        ↓
+User Information Returned
 ```
 
 ---
 
 ## Running Locally
 
-Menjalankan seluruh service:
+Menjalankan seluruh container:
 
 ```bash
 docker compose up --build
@@ -200,16 +119,22 @@ docker compose logs -f
 
 ## Debugging
 
+### Main Backend
+
+```bash
+docker compose logs backend
+```
+
 ### Auth Service
 
 ```bash
 docker compose logs auth-service
 ```
 
-### Item Service
+### Candidate Service
 
 ```bash
-docker compose logs item-service
+docker compose logs candidate-service
 ```
 
 ### Gateway
@@ -218,36 +143,29 @@ docker compose logs item-service
 docker compose logs gateway
 ```
 
-### Database
+### Databases
 
 ```bash
+docker compose logs db
 docker compose logs auth-db
-docker compose logs item-db
+docker compose logs candidate-db
 ```
 
 ---
-
-## Benefits of Microservices
-
-* Service dapat dideploy secara independen.
-* Database terpisah untuk setiap service.
-* Memudahkan scaling sesuai kebutuhan.
-* Mengurangi dampak kegagalan pada seluruh sistem.
-* Mendukung pengembangan oleh banyak tim secara paralel.
 
 ## Reliability Features
 
 ### Retry Mechanism
 
-Candidate Service dan Vote Service menggunakan auth client untuk melakukan komunikasi dengan Auth Service. Ketika terjadi gangguan jaringan atau service tidak dapat diakses, sistem melakukan retry secara otomatis menggunakan exponential backoff.
+Candidate Service menggunakan retry mechanism ketika melakukan komunikasi dengan Auth Service. Jika terjadi gangguan sementara, request akan dicoba kembali secara otomatis menggunakan exponential backoff.
 
 ### Circuit Breaker
 
-Circuit breaker digunakan untuk mencegah cascading failure ketika dependency tidak tersedia. Setelah batas kegagalan tertentu tercapai, service akan menghentikan request sementara dan memasuki state OPEN hingga cooldown selesai.
+Circuit breaker digunakan untuk mencegah cascading failure ketika Auth Service tidak tersedia. Setelah batas kegagalan tertentu tercapai, service akan memasuki state OPEN dan menghentikan request sementara hingga cooldown selesai.
 
 ### Logging & Monitoring
 
-Setiap service dilengkapi dengan logging middleware dan konfigurasi logging terpusat untuk membantu proses debugging serta observability.
+Setiap service dilengkapi middleware logging untuk membantu proses debugging, observability, dan monitoring.
 
 Komponen logging:
 
@@ -256,8 +174,8 @@ Komponen logging:
 
 ### Metrics Collection
 
-Sistem menyediakan metrik operasional melalui modul metrics.py untuk membantu monitoring performa service.
+Masing-masing service menyediakan endpoint metrics untuk membantu monitoring performa aplikasi.
 
 ### Recovery Process
 
-Ketika service kembali aktif, circuit breaker akan melakukan proses recovery dan mengembalikan sistem ke kondisi normal tanpa perlu restart seluruh aplikasi.
+Ketika service yang mengalami gangguan kembali aktif, circuit breaker akan melakukan recovery secara otomatis sehingga sistem dapat kembali beroperasi tanpa perlu melakukan restart seluruh aplikasi.

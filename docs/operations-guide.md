@@ -2,44 +2,41 @@
 
 ## Overview
 
-Dokumen ini digunakan sebagai panduan operasional untuk memantau, memeriksa, dan melakukan troubleshooting pada sistem microservices SiPilih.
+Dokumen ini digunakan sebagai panduan operasional untuk memantau, memeriksa, dan melakukan troubleshooting pada sistem SiPilih.
 
-Arsitektur sistem terdiri dari:
+Saat ini SiPilih menggunakan pendekatan hybrid architecture, yaitu kombinasi backend utama (monolith) dengan beberapa service yang telah dipisahkan, seperti Auth Service dan Candidate Service.
 
-* Gateway Service
+Komponen utama sistem:
+
+* Frontend
+* API Gateway
+* Main Backend
 * Auth Service
 * Candidate Service
-* Vote Service
 * PostgreSQL Databases
 
 ---
 
 # Health Check
 
-Health check digunakan untuk memastikan service berjalan dengan normal.
+Health check digunakan untuk memastikan setiap service berjalan dengan normal.
 
-## Gateway
+## Main Backend
 
 ```bash
-curl http://localhost/health
+curl http://localhost:8000/health
 ```
 
 ## Auth Service
 
 ```bash
-curl http://localhost/auth/health
+curl http://localhost:8001/health
 ```
 
 ## Candidate Service
 
 ```bash
-curl http://localhost/candidates/health
-```
-
-## Vote Service
-
-```bash
-curl http://localhost/votes/health
+curl http://localhost:8002/health
 ```
 
 Expected Response:
@@ -54,10 +51,16 @@ Expected Response:
 
 # Viewing Logs
 
-Untuk melihat log seluruh service:
+Melihat seluruh log:
 
 ```bash
 docker compose logs -f
+```
+
+Melihat log Main Backend:
+
+```bash
+docker compose logs backend
 ```
 
 Melihat log Auth Service:
@@ -72,12 +75,6 @@ Melihat log Candidate Service:
 docker compose logs candidate-service
 ```
 
-Melihat log Vote Service:
-
-```bash
-docker compose logs vote-service
-```
-
 Melihat log Gateway:
 
 ```bash
@@ -86,46 +83,20 @@ docker compose logs gateway
 
 ---
 
-# Correlation ID Tracing
-
-Sistem menggunakan Correlation ID untuk melacak satu request yang melewati beberapa service.
-
-Header:
-
-```http
-X-Correlation-ID
-```
-
-Contoh pencarian log berdasarkan Correlation ID:
-
-```bash
-docker compose logs auth-service candidate-service vote-service | grep abc123
-```
-
-Dengan Correlation ID yang sama, perjalanan request dapat ditelusuri dari Gateway hingga service tujuan.
-
----
-
 # Metrics Monitoring
 
-Setiap service menyediakan endpoint metrics.
+Service menyediakan endpoint metrics untuk membantu monitoring performa aplikasi.
 
 ## Auth Service
 
 ```bash
-curl http://localhost/auth/metrics
+curl http://localhost:8001/metrics
 ```
 
 ## Candidate Service
 
 ```bash
-curl http://localhost/candidates/metrics
-```
-
-## Vote Service
-
-```bash
-curl http://localhost/votes/metrics
+curl http://localhost:8002/metrics
 ```
 
 Metrics yang tersedia:
@@ -134,27 +105,45 @@ Metrics yang tersedia:
 * Error Count
 * Error Rate
 * Average Latency
-* P50 Latency
-* P95 Latency
-* P99 Latency
 * Endpoint Statistics
 
 ---
 
 # Common Troubleshooting
 
+## Backend Service Unavailable
+
+Gejala:
+
+* API tidak dapat diakses
+* Error 500 atau 502
+
+Pemeriksaan:
+
+```bash
+docker compose logs backend
+docker compose ps
+```
+
+Solusi:
+
+```bash
+docker compose restart backend
+```
+
+---
+
 ## Auth Service Unavailable
 
 Gejala:
 
 * Login gagal
-* Response 503
+* Verifikasi token gagal
 
 Pemeriksaan:
 
 ```bash
 docker compose logs auth-service
-docker compose ps
 ```
 
 Solusi:
@@ -169,7 +158,8 @@ docker compose restart auth-service
 
 Gejala:
 
-* Daftar kandidat tidak muncul
+* Data kandidat tidak dapat ditampilkan
+* Statistik kandidat tidak dapat diakses
 
 Pemeriksaan:
 
@@ -185,40 +175,39 @@ docker compose restart candidate-service
 
 ---
 
-## Vote Service Unavailable
-
-Gejala:
-
-* Voting gagal dilakukan
-
-Pemeriksaan:
-
-```bash
-docker compose logs vote-service
-```
-
-Solusi:
-
-```bash
-docker compose restart vote-service
-```
-
----
-
 ## Database Connection Error
 
 Gejala:
 
 * Service gagal startup
-* Error database connection
+* Error koneksi database
 
 Pemeriksaan:
 
 ```bash
-docker compose logs
+docker compose logs db
+docker compose logs auth-db
+docker compose logs candidate-db
 ```
 
-Pastikan container database berjalan dengan normal.
+Pastikan seluruh container database berjalan normal.
+
+---
+
+## Gateway Error
+
+Gejala:
+
+* Request gagal diteruskan ke service
+* Error 502 Bad Gateway
+
+Pemeriksaan:
+
+```bash
+docker compose logs gateway
+```
+
+Pastikan service tujuan dalam kondisi healthy.
 
 ---
 
@@ -226,11 +215,15 @@ Pastikan container database berjalan dengan normal.
 
 Gejala:
 
-* Service mengembalikan status 503
+* Candidate Service mengembalikan status error ketika Auth Service tidak tersedia
 
 Pemeriksaan:
 
-Periksa log service terkait dan tunggu masa cooldown circuit breaker selesai.
+```bash
+docker compose logs candidate-service
+```
+
+Tunggu masa cooldown circuit breaker selesai atau pastikan Auth Service kembali aktif.
 
 ---
 
@@ -238,44 +231,44 @@ Periksa log service terkait dan tunggu masa cooldown circuit breaker selesai.
 
 Jika terjadi masalah:
 
-Level 1:
+### Level 1
 
 * Periksa health endpoint
 * Periksa metrics endpoint
 * Periksa logs
 
-Level 2:
+### Level 2
 
-* Restart service yang bermasalah
+Restart service yang bermasalah
 
 ```bash
 docker compose restart <service-name>
 ```
 
-Level 3:
+### Level 3
 
-* Restart seluruh stack
+Restart seluruh stack
 
 ```bash
 docker compose down
 docker compose up -d
 ```
 
-Level 4:
+### Level 4
 
-* Eskalasi ke tim backend atau DevOps untuk investigasi lebih lanjut.
+Eskalasi ke tim Backend atau DevOps untuk investigasi lebih lanjut.
 
 ---
 
 # Monitoring Checklist
 
-Checklist harian yang direkomendasikan:
+Checklist yang direkomendasikan:
 
-* Semua health endpoint status healthy
-* Error rate < 5%
-* Service latency normal
-* Tidak ada ERROR berulang pada logs
+* Semua service berstatus healthy
 * Semua container running
+* Error rate dalam batas normal
+* Tidak terdapat error berulang pada logs
 * Metrics endpoint dapat diakses
+* Database dapat menerima koneksi
 
 Jika seluruh checklist terpenuhi, sistem SiPilih dianggap berjalan normal.
