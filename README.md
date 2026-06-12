@@ -1,6 +1,6 @@
 # ☁️ Cloud App - SIPILIH (Sistem Informasi Pemilihan Digital)
 
-![CI Pipeline](https://github.com/cc-kelompok/ccc_clan/actions/workflows/ci.yml/badge.svg)
+![CI Pipeline](https://github.com/aidilsaputrakirsan-classroom/cc-kelompok-ccc_clan/actions/workflows/ci.yml)
 
 Deskripsi : 
 SIPILIH (Sistem Informasi Pemilihan Digital) merupakan platform berbasis web yang dirancang untuk mendukung proses pemilihan elektronik (_e-voting_) di lingkungan kampus, seperti pemilihan Ketua BEM, Himpunan Mahasiswa, maupun organisasi kemahasiswaan lainnya. Sistem ini bertujuan untuk menghadirkan proses pemungutan suara yang aman, transparan, dan terstruktur melalui mekanisme autentikasi akun mahasiswa. SIPILIH menyediakan berbagai fitur Utama seperti manajemen kandidat, pengaturan periode pemilihan, serta monitoring partisipasi pemilih. Selainn itu, sistem ini juga dilengkapi dengan dashboard hasil perolehan suara secara real-time yang disajikan dalam bentuk grafik persentase, sehingga memudahkan dalam proses evaluasi dan pengambilan keputusan. 
@@ -62,6 +62,62 @@ npm run dev
 - API Docs : http://localhost:8000/docs
 - Frontend : http://localhost:5173
 
+## 🌐 Live Demo
+
+| Service | URL |
+|---------|-----|
+| Frontend | https://frontendcc-kelompok-cccclan-production.up.railway.app/ |
+| Backend API | https://backendcc-kelompok-cccclan-production.up.railway.app |
+| API Docs | https://backendcc-kelompok-cccclan-production.up.railway.app/docs |
+
+
+## 🔄 CI/CD
+
+Proyek ini menerapkan praktik Continuous Integration dan Continuous Deployment (CI/CD) untuk memastikan kualitas kode serta otomatisasi proses build dan deployment.
+
+### Continuous Integration (CI)
+
+Pipeline CI dijalankan secara otomatis setiap terdapat push atau pull request dan mencakup:
+
+* ✅ Backend Testing menggunakan Pytest
+* ✅ Frontend Testing menggunakan Vitest
+* ✅ Automated Build menggunakan Docker
+* ✅ Validasi Pull Request sebelum merge
+
+### Continuous Deployment (CD)
+
+Setelah seluruh proses CI berhasil dan perubahan di-merge ke branch `main`, aplikasi akan otomatis dideploy ke Railway melalui GitHub Actions.
+
+### Tools & Technologies
+
+* GitHub Actions
+* Pytest
+* Vitest
+* Docker
+* Railway
+* PostgreSQL
+
+---
+
+### Deployment Flow
+
+```text
+Developer Push
+       ↓
+Pull Request
+       ↓
+Automated Testing
+       ↓
+Docker Build
+       ↓
+Merge to Main
+       ↓
+Automatic Deployment
+       ↓
+Railway Production
+```
+
+
 ## 📅 Roadmap
 
 | Minggu | Target | Status |
@@ -71,8 +127,8 @@ npm run dev
 | 3 | React Frontend | ✅ |
 | 4 | Full-Stack Integration | ✅ |
 | 5-7 | Docker & Compose | ✅ |
-| 8 | UTS Demo | ⬜ |
-| 9-11 | CI/CD Pipeline | ⬜ |
+| 8 | UTS Demo | ✅ |
+| 9-11 | CI/CD Pipeline | ✅ |
 | 12-14 | Microservices | ⬜ |
 | 15-16 | Final & UAS | ⬜ |
 
