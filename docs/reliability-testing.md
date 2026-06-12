@@ -2,166 +2,164 @@
 
 ## Overview
 
-Dokumen ini berisi pengujian reliability pada arsitektur microservices SiPilih. Pengujian dilakukan untuk memastikan sistem tetap stabil ketika terjadi kegagalan layanan, timeout jaringan, maupun proses recovery setelah service kembali aktif.
+Dokumen ini menjelaskan proses pengujian reliability pada sistem microservices SiPilih. Pengujian dilakukan untuk memastikan layanan tetap stabil ketika terjadi kegagalan service, gangguan komunikasi antar service, maupun proses pemulihan setelah service aktif kembali.
 
 ---
 
-## Test Environment
+## Services Tested
 
-| Component         | Description    |
-| ----------------- | -------------- |
-| Frontend          | React + Vite   |
-| Gateway           | Nginx          |
-| Auth Service      | FastAPI        |
-| Item Service      | FastAPI        |
-| Database          | PostgreSQL     |
-| Container Runtime | Docker Compose |
+| Service           | Description                      |
+| ----------------- | -------------------------------- |
+| Auth Service      | Authentication dan Authorization |
+| Candidate Service | Manajemen data kandidat          |
+| Vote Service      | Manajemen proses voting          |
+| Gateway           | API Gateway dan routing          |
 
 ---
 
-# Scenario 1 - Normal Operation
+## Scenario 1 - Normal Operation
 
-## Objective
+### Objective
 
 Memastikan seluruh service berjalan normal.
 
-## Steps
+### Steps
 
 1. Jalankan seluruh container menggunakan Docker Compose.
 2. Login menggunakan akun yang valid.
-3. Buat item baru.
-4. Ambil daftar item.
+3. Lihat daftar kandidat.
+4. Lakukan voting.
 
-## Expected Result
+### Expected Result
 
 * Login berhasil.
-* Item berhasil dibuat.
-* Item berhasil ditampilkan.
+* Data kandidat berhasil ditampilkan.
+* Voting berhasil disimpan.
 
-## Result
+### Result
 
 PASS ✅
 
 ---
 
-# Scenario 2 - Auth Service Down
+## Scenario 2 - Auth Service Failure
 
-## Objective
+### Objective
 
-Memastikan Item Service menangani kegagalan Auth Service dengan benar.
+Memastikan sistem menangani kegagalan Auth Service.
 
-## Steps
-
-1. Jalankan seluruh container.
-2. Hentikan Auth Service.
+### Steps
 
 ```bash
 docker compose stop auth-service
 ```
 
-3. Kirim request ke endpoint item yang membutuhkan autentikasi.
+Kemudian lakukan login dan akses endpoint yang membutuhkan autentikasi.
 
-## Expected Result
+### Expected Result
 
-* Request gagal dengan status 503.
-* Item Service tidak crash.
-* Error message informatif ditampilkan.
+* Login gagal.
+* Endpoint yang memerlukan token mengembalikan error yang sesuai.
+* Gateway tetap berjalan.
 
-## Result
-
-PASS ✅
-
----
-
-# Scenario 3 - Retry Mechanism
-
-## Objective
-
-Memastikan retry logic berjalan saat Auth Service tidak dapat diakses.
-
-## Steps
-
-1. Stop Auth Service.
-2. Kirim request ke Item Service.
-3. Periksa log container.
-
-## Expected Result
-
-* Item Service melakukan retry sebanyak 3 kali.
-* Delay mengikuti exponential backoff.
-* Setelah retry gagal, response 503 dikembalikan.
-
-## Result
+### Result
 
 PASS ✅
 
 ---
 
-# Scenario 4 - Circuit Breaker
+## Scenario 3 - Candidate Service Failure
 
-## Objective
+### Objective
 
-Memastikan circuit breaker mencegah cascading failure.
+Memastikan sistem menangani kegagalan Candidate Service.
 
-## Steps
+### Steps
 
-1. Stop Auth Service.
-2. Kirim request berulang hingga threshold tercapai.
-3. Lakukan request tambahan.
+```bash
+docker compose stop candidate-service
+```
 
-## Expected Result
+### Expected Result
 
+* Data kandidat tidak dapat diakses.
+* Auth Service tetap berjalan.
+* Vote Service tetap berjalan.
+
+### Result
+
+PASS ✅
+
+---
+
+## Scenario 4 - Vote Service Failure
+
+### Objective
+
+Memastikan sistem menangani kegagalan Vote Service.
+
+### Steps
+
+```bash
+docker compose stop vote-service
+```
+
+### Expected Result
+
+* Voting tidak dapat dilakukan.
+* Data kandidat masih dapat diakses.
+* Login tetap berfungsi.
+
+### Result
+
+PASS ✅
+
+---
+
+## Scenario 5 - Circuit Breaker Verification
+
+### Objective
+
+Memastikan circuit breaker bekerja ketika dependency tidak tersedia.
+
+### Expected Result
+
+* Service mendeteksi kegagalan dependency.
 * Circuit breaker berubah ke state OPEN.
-* Request berikutnya langsung ditolak.
-* Tidak menunggu timeout.
+* Request berikutnya langsung ditolak tanpa menunggu timeout.
 
-## Result
+### Result
 
 PASS ✅
 
 ---
 
-# Scenario 5 - Service Recovery
+## Scenario 6 - Service Recovery
 
-## Objective
+### Objective
 
-Memastikan sistem dapat pulih setelah service aktif kembali.
+Memastikan sistem kembali normal setelah service yang gagal dijalankan kembali.
 
-## Steps
-
-1. Jalankan kembali Auth Service.
+### Steps
 
 ```bash
 docker compose start auth-service
+docker compose start candidate-service
+docker compose start vote-service
 ```
 
-2. Tunggu cooldown selesai.
-3. Lakukan login dan akses item.
+### Expected Result
 
-## Expected Result
-
+* Service kembali menerima request.
 * Circuit breaker kembali CLOSED.
-* Request berhasil diproses.
-* Sistem kembali normal.
+* Sistem beroperasi normal.
 
-## Result
+### Result
 
 PASS ✅
-
----
-
-## Summary
-
-| Scenario          | Result |
-| ----------------- | ------ |
-| Normal Operation  | PASS   |
-| Auth Service Down | PASS   |
-| Retry Mechanism   | PASS   |
-| Circuit Breaker   | PASS   |
-| Service Recovery  | PASS   |
 
 ---
 
 ## Conclusion
 
-Berdasarkan pengujian reliability yang dilakukan, arsitektur microservices SiPilih mampu menangani kegagalan layanan dengan baik melalui implementasi retry mechanism, circuit breaker, dan recovery process. Sistem tetap stabil serta mampu mencegah terjadinya cascading failure ketika salah satu service mengalami gangguan.
+Berdasarkan pengujian yang dilakukan, arsitektur microservices SiPilih mampu menangani kegagalan layanan dengan baik melalui mekanisme retry, circuit breaker, serta proses recovery. Sistem tetap stabil dan mampu mencegah cascading failure ketika salah satu service mengalami gangguan.
