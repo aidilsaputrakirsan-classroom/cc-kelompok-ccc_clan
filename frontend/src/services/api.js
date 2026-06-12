@@ -204,6 +204,77 @@ export async function deleteCandidate(id) {
 }
 
 // =====================
+// USERS / VOTERS
+// =====================
+
+export async function getAdminUsers(filters = {}) {
+  const params = new URLSearchParams();
+
+  if (filters.search) {
+    params.append("search", filters.search);
+  }
+
+  if (filters.role && filters.role !== "all") {
+    params.append("role", filters.role);
+  }
+
+  if (filters.status === "active") {
+    params.append("is_active", "true");
+  }
+
+  if (filters.status === "inactive") {
+    params.append("is_active", "false");
+  }
+
+  const queryString = params.toString();
+  const url = queryString
+    ? `${API_URL}/admin/users?${queryString}`
+    : `${API_URL}/admin/users`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      ...authHeaders(),
+    },
+  });
+
+  return handleResponse(response);
+}
+
+export async function updateUserVerification(userId, isActive) {
+  const response = await fetch(
+    `${API_URL}/admin/users/${userId}/verification`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+      body: JSON.stringify({
+        is_active: isActive,
+      }),
+    }
+  );
+
+  return handleResponse(response);
+}
+
+export async function updateUserRole(userId, role) {
+  const response = await fetch(`${API_URL}/admin/users/${userId}/role`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify({
+      role,
+    }),
+  });
+
+  return handleResponse(response);
+}
+
+// =====================
 // VOTING
 // =====================
 
