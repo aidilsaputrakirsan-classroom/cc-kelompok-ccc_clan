@@ -11,6 +11,7 @@ from models import Base, User
 from schemas import (
     ItemCreate, ItemUpdate, ItemResponse, ItemListResponse,
     UserCreate, UserResponse, LoginRequest, TokenResponse,
+    UserVerificationUpdate, UserRoleUpdate,
     CandidateCreate, CandidateUpdate, CandidateResponse,
     VoteResponse, VoteResultResponse
 )
@@ -102,6 +103,71 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 def me(current_user: User = Depends(get_current_user)):
     return current_user
 
+# ================= ADMIN USERS =================
+@app.get("/admin/users", response_model=list[UserResponse])
+def list_users(
+    search: str | None = Query(None),
+    role: str | None = Query(None),
+    is_active: bool | None = Query(None),
+    db: Session = Depends(get_db),
+    user: User = Depends(require_role(["admin", "superadmin"]))
+):
+    # Admin biasa hanya boleh melihat akun pemilih
+    if user.role == "admin":
+        role = "user"
+
+    return crud.get_users(db, search=search, role=role, is_active=is_active)
+
+
+@app.patch("/admin/users/{user_id}/verification", response_model=UserResponse)
+def update_user_verification(
+    user_id: int,
+    data: UserVerificationUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_role(["admin", "superadmin"]))
+):
+    target_user = crud.get_user_by_id(db, user_id)
+
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+
+    if user.id == user_id and data.is_active is False:
+        raise HTTPException(
+            status_code=400,
+            detail="Tidak bisa menonaktifkan akun sendiri"
+        )
+
+    # Admin biasa hanya boleh memverifikasi/nonaktifkan akun pemilih
+    if user.role == "admin" and target_user.role != "user":
+        raise HTTPException(
+            status_code=403,
+            detail="Admin hanya dapat mengelola akun pemilih"
+        )
+
+    updated = crud.update_user_verification(db, user_id, data.is_active)
+
+    return updated
+
+
+@app.patch("/admin/users/{user_id}/role", response_model=UserResponse)
+def update_user_role(
+    user_id: int,
+    data: UserRoleUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_role(["superadmin"]))
+):
+    if user.id == user_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Tidak bisa mengubah role akun sendiri"
+        )
+
+    updated = crud.update_user_role(db, user_id, data.role)
+
+    if not updated:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+
+    return updated
 
 # ================= ITEM =================
 @app.post("/items", response_model=ItemResponse)
