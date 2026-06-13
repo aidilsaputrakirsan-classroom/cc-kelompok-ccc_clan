@@ -4,21 +4,26 @@
 
 Pada Milestone 3, aplikasi SIPILIH mulai mengadopsi pendekatan service decomposition sebagai langkah menuju arsitektur microservices. Beberapa komponen utama telah dipisahkan menjadi service tersendiri, seperti Auth Service dan Candidate Service, sementara backend utama (monolith) masih digunakan untuk beberapa fitur yang belum sepenuhnya dipisahkan.
 
-Pendekatan hybrid ini memungkinkan pengembangan dilakukan secara bertahap tanpa mengganggu fitur yang telah berjalan sebelumnya.
+Pendekatan hybrid ini memungkinkan pengembangan dilakukan secara bertahap tanpa mengganggu fitur yang telah berjalan sebelumnya. Arsitektur ini dikategorikan sebagai hybrid architecture karena sistem masih mempertahankan Main Backend (Monolith), namun beberapa domain bisnis utama telah dipisahkan menjadi service tersendiri dengan database yang terpisah. Pendekatan ini digunakan sebagai tahap transisi menuju arsitektur yang lebih terdistribusi.
 
 ---
+
+## Architecture Diagram
 
 ## Architecture Diagram
 
 ```mermaid
 flowchart TD
 
-    USER["User Browser"] --> GW["API Gateway (Nginx)"]
+    USER["User Browser"]
+
+    USER --> FE["Frontend"]
+
+    FE --> GW["API Gateway (Nginx)"]
 
     GW --> AUTH["Auth Service"]
     GW --> CAND["Candidate Service"]
-    GW --> BACKEND["Main Backend"]
-    GW --> FE["Frontend"]
+    GW --> BACKEND["Main Backend (Monolith)"]
 
     AUTH --> AUTHDB[("Auth Database")]
     CAND --> CANDDB[("Candidate Database")]
@@ -27,7 +32,7 @@ flowchart TD
     CAND -.->|"Verify Token"| AUTH
 ```
 
----
+User mengakses aplikasi melalui Frontend. Seluruh request API kemudian diteruskan ke API Gateway yang bertugas melakukan routing ke service yang sesuai.
 
 ## Services
 
