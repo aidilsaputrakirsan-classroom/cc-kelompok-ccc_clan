@@ -29,6 +29,9 @@ Dalam implementasinya, SIPILIH membagi hak akses pengguna ke dalam beberapa pera
 
 ## 🏗️ Architecture
 
+## Architecture Diagram
+
+```mermaid
 flowchart TD
 
     USER["User Browser"]
@@ -46,6 +49,7 @@ flowchart TD
     BACKEND --> MAINDB[("Main Database")]
 
     CAND -.->|"Verify Token"| AUTH
+```
 
   SIPILIH saat ini berada pada tahap transisi dari arsitektur monolith menuju microservices. Transisi ini ditunjukkan dengan adanya pemisahan beberapa domain bisnis menjadi service tersendiri, seperti Auth Service dan Candidate Service, yang memiliki tanggung jawab serta database masing-masing.
 
