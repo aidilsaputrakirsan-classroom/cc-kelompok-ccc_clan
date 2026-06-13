@@ -10,22 +10,23 @@ Pendekatan hybrid ini memungkinkan pengembangan dilakukan secara bertahap tanpa 
 
 ## Architecture Diagram
 
-```mermaid
 flowchart TD
 
-    USER["User Browser"] --> GW["API Gateway (Nginx)"]
+    USER["User Browser"]
+
+    USER --> FE["Frontend"]
+
+    FE --> GW["API Gateway (Nginx)"]
 
     GW --> AUTH["Auth Service"]
     GW --> CAND["Candidate Service"]
-    GW --> BACKEND["Main Backend"]
-    GW --> FE["Frontend"]
+    GW --> BACKEND["Main Backend (Monolith)"]
 
     AUTH --> AUTHDB[("Auth Database")]
     CAND --> CANDDB[("Candidate Database")]
     BACKEND --> MAINDB[("Main Database")]
 
     CAND -.->|"Verify Token"| AUTH
-```
 
 ---
 

@@ -29,38 +29,29 @@ Dalam implementasinya, SIPILIH membagi hak akses pengguna ke dalam beberapa pera
 
 ## 🏗️ Architecture
 
-```
-                    Frontend
-                        │
-                        ▼
+flowchart TD
 
-                ┌─────────────┐
-                │   Gateway   │
-                └──────┬──────┘
-                       │
-        ┌──────────────┴──────────────┐
-        ▼                             ▼
+    USER["User Browser"]
 
-   Auth Service              Candidate Service
+    USER --> FE["Frontend"]
 
-        │                             │
-        ▼                             ▼
+    FE --> GW["API Gateway (Nginx)"]
 
-    Auth DB                   Candidate DB
+    GW --> AUTH["Auth Service"]
+    GW --> CAND["Candidate Service"]
+    GW --> BACKEND["Main Backend (Monolith)"]
 
-                       │
-                       ▼
+    AUTH --> AUTHDB[("Auth Database")]
+    CAND --> CANDDB[("Candidate Database")]
+    BACKEND --> MAINDB[("Main Database")]
 
-                Backend Monolith
-                (Legacy Services)
+    CAND -.->|"Verify Token"| AUTH
 
-                       │
-                       ▼
+  SIPILIH saat ini berada pada tahap transisi dari arsitektur monolith menuju microservices. Transisi ini ditunjukkan dengan adanya pemisahan beberapa domain bisnis menjadi service tersendiri, seperti Auth Service dan Candidate Service, yang memiliki tanggung jawab serta database masing-masing.
 
-                  PostgreSQL
-```
+Selain itu, komunikasi antar service telah dilakukan melalui API, misalnya Candidate Service yang melakukan verifikasi token melalui Auth Service. Sistem juga telah menggunakan API Gateway sebagai entry point untuk melakukan routing request ke service yang sesuai.
 
-SIPILIH saat ini menggunakan pendekatan hybrid architecture. Beberapa fitur telah dipisahkan ke dalam service terpisah seperti Auth Service dan Candidate Service untuk mendukung konsep microservices. Namun, sistem masih mempertahankan backend utama (monolith) untuk beberapa fungsi yang belum sepenuhnya dipisahkan. Pendekatan ini digunakan sebagai tahap transisi menuju arsitektur yang lebih terdistribusi.
+Meskipun demikian, aplikasi masih mempertahankan Main Backend (Monolith) untuk beberapa fitur yang belum sepenuhnya dipisahkan. Oleh karena itu, arsitektur yang digunakan saat ini lebih tepat disebut sebagai hybrid architecture, yaitu kombinasi antara monolith dan microservices sebagai tahap transisi menuju sistem yang lebih terdistribusi.
 
 ## 🌐 Live Demo
 
