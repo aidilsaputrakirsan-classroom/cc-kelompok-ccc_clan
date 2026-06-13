@@ -1,284 +1,146 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import AdminNavbar from "./AdminNavbar";
 import ConfirmModal from "./ConfirmModal";
 import Toast from "./Toast";
-import { getPublicCandidates, voteCandidate } from "../services/api";
-import { canManageCandidates, getStoredUser } from "../utils/auth";
-
-const POSITION_ORDER = [
-  "ketua bem km",
-  "dpm km",
-  "ketua bem fakultas",
-  "dpm fakultas",
-  "ketua himpunan",
-];
-
-const POSITION_LABELS = {
-  "ketua bem km": "Ketua BEM KM",
-  "dpm km": "DPM KM",
-  "ketua bem fakultas": "Ketua BEM Fakultas",
-  "dpm fakultas": "DPM Fakultas",
-  "ketua himpunan": "Ketua Himpunan",
-};
-
-function normalizePosition(position) {
-  return (position || "lainnya").toLowerCase().trim();
-}
-
-function getPositionLabel(position) {
-  const normalized = normalizePosition(position);
-  return POSITION_LABELS[normalized] || position || "Lainnya";
-}
-
-function getVotedStorageKey() {
-  const user = getStoredUser();
-  const identifier = user?.id || user?.email || "guest";
-  return `votedCategories:${identifier}`;
-}
-
-function getSavedVotedCategories() {
-  const saved = localStorage.getItem(getVotedStorageKey());
-
-  if (!saved) return [];
-
-  try {
-    const parsed = JSON.parse(saved);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveVotedCategories(categories) {
-  localStorage.setItem(getVotedStorageKey(), JSON.stringify(categories));
-}
+import {
+  getEligibleCandidates,
+  getMe,
+  getMyVoteStatus,
+  getPublicCandidates,
+  voteCandidate,
+} from "../services/api";
+import {
+  getCategoryKey,
+  getCategoryLabel,
+  getSavedVotedCategories,
+  groupCandidatesByVotingCategory,
+  isCandidateEligibleForUser,
+  mergeUniqueCategories,
+  normalizeVoteStatus,
+  saveVotedCategories,
+} from "../utils/voting";
 
 function VotingPage() {
-  const navigate = useNavigate();
-
+  const [user, setUser] = useState(null);
   const [candidates, setCandidates] = useState([]);
+  const [voteStatus, setVoteStatus] = useState({ votedCategories: [], votes: [] });
   const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [votingLoading, setVotingLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [votedCategories, setVotedCategories] = useState(
-    getSavedVotedCategories
-  );
-
-  const [toast, setToast] = useState({
-    show: false,
-    type: "success",
-    message: "",
-  });
-
-  const [showVoteModal, setShowVoteModal] = useState(false);
-
-  const canManage = canManageCandidates();
+  const [toast, setToast] = useState({ show: false, type: "success", message: "" });
 
   const showToast = useCallback((type, message) => {
-    setToast({
-      show: true,
-      type,
-      message,
-    });
+    setToast({ show: true, type, message });
 
     setTimeout(() => {
-      setToast({
-        show: false,
-        type: "success",
-        message: "",
-      });
+      setToast({ show: false, type: "success", message: "" });
     }, 2500);
   }, []);
 
   const closeToast = () => {
-    setToast({
-      show: false,
-      type: "success",
-      message: "",
-    });
+    setToast({ show: false, type: "success", message: "" });
   };
 
-  const fetchCandidates = useCallback(async () => {
-    setLoading(true);
-    setError("");
-
+  const loadVotingData = useCallback(async () => {
     try {
-      const data = await getPublicCandidates();
+      setLoading(true);
+      setError("");
 
-      const approvedCandidates = Array.isArray(data)
-        ? data.filter((candidate) => {
-            if (!candidate.status) return true;
+      const currentUser = await getMe();
+      setUser(currentUser);
 
-            const status = candidate.status.toLowerCase();
-            return status === "approved" || status === "verified";
-          })
-        : [];
+      let eligibleCandidates = [];
 
-      setCandidates(approvedCandidates);
-    } catch (err) {
-      if (err.message === "UNAUTHORIZED") {
-        setError("Sesi berakhir. Silakan login ulang.");
-
-        setTimeout(() => {
-          navigate("/login");
-        }, 800);
-      } else {
-        setError(err.message || "Gagal mengambil data kandidat.");
+      try {
+        eligibleCandidates = await getEligibleCandidates();
+      } catch {
+        const allCandidates = await getPublicCandidates();
+        eligibleCandidates = allCandidates.filter((candidate) =>
+          isCandidateEligibleForUser(candidate, currentUser)
+        );
       }
+
+      const statusData = await getMyVoteStatus().catch(() => null);
+      const normalizedStatus = normalizeVoteStatus(statusData);
+      const savedCategories = getSavedVotedCategories(currentUser);
+      const mergedCategories = mergeUniqueCategories(
+        normalizedStatus.votedCategories,
+        savedCategories
+      );
+
+      setCandidates(eligibleCandidates);
+      setVoteStatus({
+        votes: normalizedStatus.votes,
+        votedCategories: mergedCategories,
+      });
+      saveVotedCategories(currentUser, mergedCategories);
+    } catch (err) {
+      setError(err.message || "Gagal memuat data voting.");
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
-    if (!localStorage.getItem("token")) {
-      navigate("/login");
-      return;
-    }
+    loadVotingData();
+  }, [loadVotingData]);
 
-    fetchCandidates();
-  }, [fetchCandidates, navigate]);
+  const categoryGroups = useMemo(
+    () => groupCandidatesByVotingCategory(candidates),
+    [candidates]
+  );
 
-  const filteredCandidates = useMemo(() => {
-    const keyword = searchTerm.toLowerCase().trim();
+  const votedCategorySet = useMemo(
+    () => new Set(voteStatus.votedCategories),
+    [voteStatus.votedCategories]
+  );
 
-    if (!keyword) return candidates;
+  const summary = useMemo(() => {
+    const total = categoryGroups.length;
+    const done = categoryGroups.filter((group) => votedCategorySet.has(group.key)).length;
 
-    return candidates.filter((candidate) => {
-      return (
-        candidate.nama?.toLowerCase().includes(keyword) ||
-        candidate.nim?.toLowerCase().includes(keyword) ||
-        candidate.email?.toLowerCase().includes(keyword) ||
-        candidate.posisi?.toLowerCase().includes(keyword) ||
-        candidate.prodi?.toLowerCase().includes(keyword) ||
-        candidate.jurusan?.toLowerCase().includes(keyword) ||
-        candidate.fakultas?.toLowerCase().includes(keyword) ||
-        candidate.visi?.toLowerCase().includes(keyword)
-      );
-    });
-  }, [candidates, searchTerm]);
+    return {
+      total,
+      done,
+      remaining: Math.max(total - done, 0),
+    };
+  }, [categoryGroups, votedCategorySet]);
 
-  const groupedCandidates = useMemo(() => {
-    const groups = {};
-
-    filteredCandidates.forEach((candidate) => {
-      const key = normalizePosition(candidate.posisi);
-
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-
-      groups[key].push(candidate);
-    });
-
-    const orderedGroups = [];
-
-    POSITION_ORDER.forEach((positionKey) => {
-      if (groups[positionKey]?.length) {
-        orderedGroups.push({
-          key: positionKey,
-          label: getPositionLabel(positionKey),
-          candidates: groups[positionKey],
-        });
-      }
-    });
-
-    Object.keys(groups)
-      .filter((key) => !POSITION_ORDER.includes(key))
-      .sort()
-      .forEach((key) => {
-        orderedGroups.push({
-          key,
-          label: getPositionLabel(key),
-          candidates: groups[key],
-        });
-      });
-
-    return orderedGroups;
-  }, [filteredCandidates]);
-
-  const markCategoryAsVoted = (position) => {
-    const categoryKey = normalizePosition(position);
-
-    setVotedCategories((prevCategories) => {
-      if (prevCategories.includes(categoryKey)) {
-        return prevCategories;
-      }
-
-      const updatedCategories = [...prevCategories, categoryKey];
-      saveVotedCategories(updatedCategories);
-
-      return updatedCategories;
-    });
-  };
-
-  const hasVotedInCategory = (position) => {
-    const categoryKey = normalizePosition(position);
-    return votedCategories.includes(categoryKey);
-  };
-
-  const openVoteModal = (candidate) => {
-    if (canManage) {
-      showToast("error", "Admin tidak dapat melakukan voting.");
-      return;
-    }
-
-    if (hasVotedInCategory(candidate.posisi)) {
-      showToast(
-        "error",
-        `Kamu sudah memilih untuk kategori ${getPositionLabel(
-          candidate.posisi
-        )}.`
-      );
-      return;
-    }
-
+  const openConfirmModal = (candidate, category) => {
     setSelectedCandidate(candidate);
-    setShowVoteModal(true);
+    setSelectedCategory(category);
   };
 
-  const closeVoteModal = () => {
-    if (votingLoading) return;
-
+  const closeConfirmModal = () => {
     setSelectedCandidate(null);
-    setShowVoteModal(false);
+    setSelectedCategory(null);
   };
 
   const handleVote = async () => {
-    if (!selectedCandidate) return;
-
-    setVotingLoading(true);
+    if (!selectedCandidate || !selectedCategory) return;
 
     try {
-      await voteCandidate(selectedCandidate.id);
+      setActionLoading(true);
+      setError("");
 
-      markCategoryAsVoted(selectedCandidate.posisi);
+      const response = await voteCandidate(selectedCandidate.id);
+      const categoryKey = response?.category_key || getCategoryKey(selectedCandidate);
+      const mergedCategories = mergeUniqueCategories(voteStatus.votedCategories, [categoryKey]);
 
-      showToast(
-        "success",
-        `Voting untuk ${selectedCandidate.nama} sebagai ${getPositionLabel(
-          selectedCandidate.posisi
-        )} berhasil disimpan.`
-      );
-
-      setSelectedCandidate(null);
-      setShowVoteModal(false);
+      setVoteStatus((prev) => ({
+        ...prev,
+        votedCategories: mergedCategories,
+      }));
+      saveVotedCategories(user, mergedCategories);
+      showToast("success", `Voting untuk ${selectedCategory.label} berhasil.`);
+      closeConfirmModal();
+      await loadVotingData();
     } catch (err) {
-      if (err.message === "UNAUTHORIZED") {
-        showToast("error", "Sesi berakhir. Silakan login ulang.");
-        setShowVoteModal(false);
-
-        setTimeout(() => {
-          navigate("/login");
-        }, 900);
-      } else {
-        showToast("error", err.message || "Gagal melakukan voting.");
-      }
+      showToast("error", err.message || "Voting gagal dilakukan.");
     } finally {
-      setVotingLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -294,188 +156,167 @@ function VotingPage() {
       />
 
       <ConfirmModal
-        show={showVoteModal}
+        show={Boolean(selectedCandidate)}
         title="Konfirmasi Voting"
         message={
           selectedCandidate
-            ? `Apakah kamu yakin ingin memilih ${selectedCandidate.nama} sebagai ${getPositionLabel(
-                selectedCandidate.posisi
-              )}? Pilihan untuk kategori ini tidak dapat diubah setelah dikirim.`
-            : "Apakah kamu yakin ingin melakukan voting?"
+            ? `Kamu akan memilih ${selectedCandidate.nama} pada kategori ${selectedCategory?.label || getCategoryLabel(selectedCandidate)}. Pilihan tidak dapat diubah.`
+            : "Apakah kamu yakin ingin memilih kandidat ini?"
         }
-        confirmText={votingLoading ? "Menyimpan..." : "Ya, Pilih"}
+        confirmText={actionLoading ? "Memproses..." : "Ya, Pilih"}
         cancelText="Batal"
+        confirmVariant="primary"
         onConfirm={handleVote}
-        onCancel={closeVoteModal}
+        onCancel={closeConfirmModal}
       />
 
-      <div className="candidates-page">
+      <main className="candidates-page voting-page">
         <section className="candidate-hero">
           <div>
-            <span className="candidate-badge">Voting SIPILIH</span>
-            <h1>Pilih Kandidat</h1>
+            <span className="candidate-badge">FASE 3</span>
+            <h1>Voting Utama</h1>
             <p>
-              Pilih satu kandidat untuk setiap kategori. Kamu hanya dapat
-              memilih satu kali pada kategori yang sama.
+              Pilih kandidat sesuai hak pilih kamu. Ketua KM dan DPM KM dapat
+              dipilih semua pemilih, sedangkan kategori fakultas, jurusan, dan
+              prodi hanya tampil sesuai data akademik masing-masing.
             </p>
           </div>
-
-          <Link to="/candidates" className="btn btn-outline">
-            Pelajari Kandidat
-          </Link>
         </section>
 
-        {canManage && (
-          <section className="candidate-error-box">
-            <strong>Mode Admin</strong>
+        <section className="user-stats-grid voting-stats-grid">
+          <div className="user-stat-card">
+            <span>Total Kategori</span>
+            <strong>{summary.total}</strong>
+          </div>
+          <div className="user-stat-card">
+            <span>Sudah Coblos</span>
+            <strong>{summary.done}</strong>
+          </div>
+          <div className="user-stat-card">
+            <span>Belum Coblos</span>
+            <strong>{summary.remaining}</strong>
+          </div>
+          <div className="user-stat-card">
+            <span>Status Akun</span>
+            <strong>{user?.is_active === false ? "Belum Aktif" : "Aktif"}</strong>
+          </div>
+        </section>
+
+        {user && (
+          <section className="info-box voting-user-info">
+            <strong>Hak pilih kamu</strong>
             <p>
-              Akun admin dapat melihat halaman ini untuk pemantauan, tetapi
-              tombol memilih hanya tersedia untuk user/pemilih biasa.
+              {user.fakultas} • {user.jurusan} • {user.prodi}
             </p>
+          </section>
+        )}
+
+        {error && (
+          <section className="candidate-error-box">
+            <strong>Terjadi kesalahan</strong>
+            <p>{error}</p>
           </section>
         )}
 
         <section className="candidate-table-card">
           <div className="candidate-table-top">
-            <div className="candidate-table-header">
-              <div>
-                <h3>Voting Berdasarkan Kategori</h3>
-                <p>
-                  {loading
-                    ? "Sedang memuat kandidat..."
-                    : `${filteredCandidates.length} kandidat dalam ${groupedCandidates.length} kategori`}
-                </p>
-              </div>
-            </div>
-
-            <div className="candidate-search-box">
-              <input
-                type="text"
-                placeholder="Cari nama, posisi, prodi..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div>
+              <h2>Daftar Kategori Voting</h2>
+              <p>
+                Setiap kategori hanya bisa dicoblos satu kali. Pastikan pilihanmu
+                sudah benar sebelum menekan tombol pilih.
+              </p>
             </div>
           </div>
 
           {loading ? (
+            <p className="info-message">Memuat kandidat sesuai hak pilih...</p>
+          ) : categoryGroups.length === 0 ? (
             <div className="candidate-empty-state">
-              <h4>Loading data kandidat...</h4>
-              <p>Mohon tunggu sebentar, data sedang diambil dari sistem.</p>
-            </div>
-          ) : error ? (
-            <div className="candidate-error-box">
-              <strong>Terjadi kesalahan</strong>
-              <p>{error}</p>
-            </div>
-          ) : candidates.length === 0 ? (
-            <div className="candidate-empty-state">
-              <h4>Belum ada kandidat</h4>
+              <h4>Belum ada kandidat sesuai hak pilih</h4>
               <p>
-                Saat ini belum ada kandidat yang tersedia untuk proses voting.
-              </p>
-            </div>
-          ) : filteredCandidates.length === 0 ? (
-            <div className="candidate-empty-state">
-              <h4>Data tidak ditemukan</h4>
-              <p>
-                Tidak ada kandidat yang cocok dengan kata kunci pencarianmu.
+                Kandidat belum tersedia atau belum diverifikasi untuk lingkup
+                akademik kamu.
               </p>
             </div>
           ) : (
             <div className="voting-category-list">
-              {groupedCandidates.map((group) => {
-                const alreadyVoted = votedCategories.includes(group.key);
+              {categoryGroups.map((category) => {
+                const alreadyVoted = votedCategorySet.has(category.key);
 
                 return (
-                  <section className="voting-category" key={group.key}>
+                  <div key={category.key} className="voting-category">
                     <div className="voting-category-header">
                       <div>
-                        <span>Kategori</span>
-                        <h4>{group.label}</h4>
-
-                        {alreadyVoted && (
-                          <p className="voting-status-text">
-                            Kamu sudah memilih untuk kategori ini.
-                          </p>
-                        )}
+                        <span>{category.levelLabel}</span>
+                        <h4>{category.label}</h4>
                       </div>
 
-                      <p>{group.candidates.length} kandidat</p>
+                      <p className={alreadyVoted ? "voting-status-done" : "voting-status-open"}>
+                        {alreadyVoted ? "Sudah Coblos" : "Belum Coblos"}
+                      </p>
                     </div>
 
                     <div className="candidate-table-wrapper">
-                      <table className="candidate-table">
+                      <table className="candidate-table voting-table">
                         <thead>
                           <tr>
                             <th>Kandidat</th>
-                            <th>Program Studi</th>
-                            <th>Visi Singkat</th>
+                            <th>Akademik</th>
+                            <th>Visi</th>
+                            <th>Status</th>
                             <th>Aksi</th>
                           </tr>
                         </thead>
-
                         <tbody>
-                          {group.candidates.map((candidate) => (
+                          {category.candidates.map((candidate) => (
                             <tr key={candidate.id}>
                               <td>
                                 <div className="candidate-name-cell">
                                   <div className="candidate-mini-avatar">
-                                    {candidate.nama
-                                      ? candidate.nama.charAt(0).toUpperCase()
-                                      : "K"}
+                                    {candidate.nama?.charAt(0)?.toUpperCase() || "K"}
                                   </div>
-
                                   <div>
                                     <strong>{candidate.nama}</strong>
-                                    <span>{candidate.email}</span>
+                                    <span>NIM: {candidate.nim}</span>
                                   </div>
                                 </div>
                               </td>
-
-                              <td>{candidate.prodi || "-"}</td>
-
+                              <td>
+                                <div className="user-academic-cell">
+                                  <span>{candidate.prodi}</span>
+                                  <small>{candidate.jurusan}</small>
+                                  <small>{candidate.fakultas}</small>
+                                </div>
+                              </td>
                               <td className="candidate-description-cell">
                                 {candidate.visi || "-"}
                               </td>
-
                               <td>
-                                <div className="candidate-action-group">
-                                  <Link
-                                    to={`/candidates/${candidate.id}`}
-                                    className="action-btn action-btn-detail"
-                                  >
-                                    Detail
-                                  </Link>
-
-                                  {!canManage && (
-                                    <button
-                                      type="button"
-                                      className="action-btn action-btn-edit"
-                                      disabled={
-                                        alreadyVoted || votingLoading
-                                      }
-                                      onClick={() => openVoteModal(candidate)}
-                                    >
-                                      {alreadyVoted
-                                        ? "Sudah Memilih"
-                                        : "Pilih"}
-                                    </button>
-                                  )}
-                                </div>
+                                <span className="status-pill status-approved">Terverifikasi</span>
+                              </td>
+                              <td>
+                                <button
+                                  type="button"
+                                  className="action-btn action-btn-detail"
+                                  disabled={alreadyVoted || actionLoading}
+                                  onClick={() => openConfirmModal(candidate, category)}
+                                >
+                                  {alreadyVoted ? "Terkunci" : "Pilih"}
+                                </button>
                               </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
-                  </section>
+                  </div>
                 );
               })}
             </div>
           )}
         </section>
-      </div>
+      </main>
     </>
   );
 }

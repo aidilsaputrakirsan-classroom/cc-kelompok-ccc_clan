@@ -1,13 +1,12 @@
 import os
 import sys
+from pathlib import Path
 
-sys.path.append(
-    os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..")
-    )
-)
+BASE_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(BASE_DIR))
 
-os.environ["DATABASE_URL"] = "sqlite:///./test.db"
+TEST_DB_PATH = BASE_DIR / "test.db"
+os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DB_PATH}"
 
 import pytest
 from sqlalchemy import create_engine
@@ -15,22 +14,22 @@ from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 
 from database import Base, get_db
+import models
 from main import app
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{TEST_DB_PATH}"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    connect_args={"check_same_thread": False},
 )
 
 TestingSessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
-    bind=engine
+    bind=engine,
 )
-
-Base.metadata.create_all(bind=engine)
 
 
 def override_get_db():
@@ -44,6 +43,14 @@ def override_get_db():
 app.dependency_overrides[get_db] = override_get_db
 
 
+@pytest.fixture(autouse=True)
+def reset_database():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    yield
+
+
 @pytest.fixture
 def client():
-    yield TestClient(app)
+    with TestClient(app) as test_client:
+        yield test_client

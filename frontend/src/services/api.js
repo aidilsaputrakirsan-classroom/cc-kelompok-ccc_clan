@@ -32,7 +32,7 @@ function authHeaders() {
   const headers = {};
 
   if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
   }
 
   return headers;
@@ -45,7 +45,8 @@ async function handleResponse(response) {
   }
 
   if (response.status === 403) {
-    throw new Error("FORBIDDEN");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "FORBIDDEN");
   }
 
   if (response.status === 503 || response.status === 504) {
@@ -60,7 +61,7 @@ async function handleResponse(response) {
     if (error.detail) {
       if (Array.isArray(error.detail)) {
         errorMessage = error.detail
-          .map((e) => e.msg || JSON.stringify(e))
+          .map((item) => item.msg || JSON.stringify(item))
           .join(", ");
       } else if (typeof error.detail === "string") {
         errorMessage = error.detail;
@@ -75,6 +76,18 @@ async function handleResponse(response) {
   if (response.status === 204) return null;
 
   return response.json();
+}
+
+// =====================
+// ACADEMIC DATA
+// =====================
+
+export async function getAcademicStructure() {
+  const response = await fetch(`${API_URL}/academic`, {
+    method: "GET",
+  });
+
+  return handleResponse(response);
 }
 
 // =====================
@@ -145,6 +158,17 @@ export async function logout() {
 export async function getPublicCandidates() {
   const response = await fetch(`${API_URL}/candidates`, {
     method: "GET",
+  });
+
+  return handleResponse(response);
+}
+
+export async function getEligibleCandidates() {
+  const response = await fetch(`${API_URL}/candidates/eligible`, {
+    method: "GET",
+    headers: {
+      ...authHeaders(),
+    },
   });
 
   return handleResponse(response);
@@ -242,19 +266,16 @@ export async function getAdminUsers(filters = {}) {
 }
 
 export async function updateUserVerification(userId, isActive) {
-  const response = await fetch(
-    `${API_URL}/admin/users/${userId}/verification`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeaders(),
-      },
-      body: JSON.stringify({
-        is_active: isActive,
-      }),
-    }
-  );
+  const response = await fetch(`${API_URL}/admin/users/${userId}/verification`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify({
+      is_active: isActive,
+    }),
+  });
 
   return handleResponse(response);
 }
@@ -266,9 +287,7 @@ export async function updateUserRole(userId, role) {
       "Content-Type": "application/json",
       ...authHeaders(),
     },
-    body: JSON.stringify({
-      role,
-    }),
+    body: JSON.stringify({ role }),
   });
 
   return handleResponse(response);
@@ -281,6 +300,17 @@ export async function updateUserRole(userId, role) {
 export async function voteCandidate(candidateId) {
   const response = await fetch(`${API_URL}/vote/${candidateId}`, {
     method: "POST",
+    headers: {
+      ...authHeaders(),
+    },
+  });
+
+  return handleResponse(response);
+}
+
+export async function getMyVoteStatus() {
+  const response = await fetch(`${API_URL}/vote/my-status`, {
+    method: "GET",
     headers: {
       ...authHeaders(),
     },
