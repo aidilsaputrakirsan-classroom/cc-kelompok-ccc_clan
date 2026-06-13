@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminNavbar from "./AdminNavbar";
 import ConfirmModal from "./ConfirmModal";
+import EmptyState from "./EmptyState";
+import InlineAlert from "./InlineAlert";
 import Toast from "./Toast";
 import {
   getEligibleCandidates,
@@ -19,6 +21,8 @@ import {
   normalizeVoteStatus,
   saveVotedCategories,
 } from "../utils/voting";
+import { getFriendlyErrorMessage } from "../utils/validation";
+import "../styles/fase6.css";
 
 function VotingPage() {
   const [user, setUser] = useState(null);
@@ -29,6 +33,7 @@ function VotingPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
+  const [warning, setWarning] = useState("");
   const [toast, setToast] = useState({ show: false, type: "success", message: "" });
 
   const showToast = useCallback((type, message) => {
@@ -47,9 +52,20 @@ function VotingPage() {
     try {
       setLoading(true);
       setError("");
+      setWarning("");
 
       const currentUser = await getMe();
       setUser(currentUser);
+
+      if (currentUser?.role && currentUser.role !== "user") {
+        setError("Halaman voting hanya dapat digunakan oleh akun pemilih.");
+        setCandidates([]);
+        return;
+      }
+
+      if (currentUser?.is_active === false) {
+        setWarning("Akun kamu belum diverifikasi. Kamu dapat melihat halaman ini, tetapi voting bisa ditolak sampai akun diaktifkan admin.");
+      }
 
       let eligibleCandidates = [];
 
@@ -59,6 +75,9 @@ function VotingPage() {
         const allCandidates = await getPublicCandidates();
         eligibleCandidates = allCandidates.filter((candidate) =>
           isCandidateEligibleForUser(candidate, currentUser)
+        );
+        setWarning((prev) =>
+          prev || "Endpoint kandidat sesuai hak pilih belum tersedia, jadi frontend memakai filter cadangan dari daftar kandidat publik."
         );
       }
 
@@ -70,14 +89,14 @@ function VotingPage() {
         savedCategories
       );
 
-      setCandidates(eligibleCandidates);
+      setCandidates(Array.isArray(eligibleCandidates) ? eligibleCandidates : []);
       setVoteStatus({
         votes: normalizedStatus.votes,
         votedCategories: mergedCategories,
       });
       saveVotedCategories(currentUser, mergedCategories);
     } catch (err) {
-      setError(err.message || "Gagal memuat data voting.");
+      setError(getFriendlyErrorMessage(err, "Gagal memuat data voting."));
     } finally {
       setLoading(false);
     }
@@ -109,11 +128,18 @@ function VotingPage() {
   }, [categoryGroups, votedCategorySet]);
 
   const openConfirmModal = (candidate, category) => {
+    if (user?.is_active === false) {
+      showToast("error", "Akun kamu belum diverifikasi oleh admin sehingga belum bisa voting.");
+      return;
+    }
+
     setSelectedCandidate(candidate);
     setSelectedCategory(category);
   };
 
   const closeConfirmModal = () => {
+    if (actionLoading) return;
+
     setSelectedCandidate(null);
     setSelectedCategory(null);
   };
@@ -138,7 +164,7 @@ function VotingPage() {
       closeConfirmModal();
       await loadVotingData();
     } catch (err) {
-      showToast("error", err.message || "Voting gagal dilakukan.");
+      showToast("error", getFriendlyErrorMessage(err, "Voting gagal dilakukan."));
     } finally {
       setActionLoading(false);
     }
@@ -148,12 +174,7 @@ function VotingPage() {
     <>
       <AdminNavbar />
 
-      <Toast
-        show={toast.show}
-        type={toast.type}
-        message={toast.message}
-        onClose={closeToast}
-      />
+      <Toast show={toast.show} type={toast.type} message={toast.message} onClose={closeToast} />
 
       <ConfirmModal
         show={Boolean(selectedCandidate)}
@@ -170,75 +191,55 @@ function VotingPage() {
         onCancel={closeConfirmModal}
       />
 
-      <main className="candidates-page voting-page">
+      <main className="candidates-page voting-page fase6-page">
         <section className="candidate-hero">
           <div>
-            <span className="candidate-badge">FASE 3</span>
+            <span className="candidate-badge">FASE 6 - Error Handling</span>
             <h1>Voting Utama</h1>
             <p>
-              Pilih kandidat sesuai hak pilih kamu. Ketua KM dan DPM KM dapat
-              dipilih semua pemilih, sedangkan kategori fakultas, jurusan, dan
-              prodi hanya tampil sesuai data akademik masing-masing.
+              Pilih kandidat sesuai hak pilih kamu. Setiap kategori hanya bisa dicoblos satu kali.
             </p>
           </div>
         </section>
 
         <section className="user-stats-grid voting-stats-grid">
-          <div className="user-stat-card">
-            <span>Total Kategori</span>
-            <strong>{summary.total}</strong>
-          </div>
-          <div className="user-stat-card">
-            <span>Sudah Coblos</span>
-            <strong>{summary.done}</strong>
-          </div>
-          <div className="user-stat-card">
-            <span>Belum Coblos</span>
-            <strong>{summary.remaining}</strong>
-          </div>
-          <div className="user-stat-card">
-            <span>Status Akun</span>
-            <strong>{user?.is_active === false ? "Belum Aktif" : "Aktif"}</strong>
-          </div>
+          <div className="user-stat-card"><span>Total Kategori</span><strong>{summary.total}</strong></div>
+          <div className="user-stat-card"><span>Sudah Coblos</span><strong>{summary.done}</strong></div>
+          <div className="user-stat-card"><span>Belum Coblos</span><strong>{summary.remaining}</strong></div>
+          <div className="user-stat-card"><span>Status Akun</span><strong>{user?.is_active === false ? "Belum Aktif" : "Aktif"}</strong></div>
         </section>
 
         {user && (
           <section className="info-box voting-user-info">
             <strong>Hak pilih kamu</strong>
-            <p>
-              {user.fakultas} • {user.jurusan} • {user.prodi}
-            </p>
+            <p>{user.fakultas || "Fakultas belum ada"} • {user.jurusan || "Jurusan belum ada"} • {user.prodi || "Prodi belum ada"}</p>
           </section>
         )}
 
-        {error && (
-          <section className="candidate-error-box">
-            <strong>Terjadi kesalahan</strong>
-            <p>{error}</p>
-          </section>
-        )}
+        <InlineAlert type="warning" message={warning} />
+        <InlineAlert type="error" message={error} onRetry={error ? loadVotingData : undefined} />
 
         <section className="candidate-table-card">
           <div className="candidate-table-top">
             <div>
               <h2>Daftar Kategori Voting</h2>
-              <p>
-                Setiap kategori hanya bisa dicoblos satu kali. Pastikan pilihanmu
-                sudah benar sebelum menekan tombol pilih.
-              </p>
+              <p>Setiap kategori hanya bisa dicoblos satu kali. Pastikan pilihanmu sudah benar.</p>
             </div>
           </div>
 
           {loading ? (
-            <p className="info-message">Memuat kandidat sesuai hak pilih...</p>
-          ) : categoryGroups.length === 0 ? (
-            <div className="candidate-empty-state">
-              <h4>Belum ada kandidat sesuai hak pilih</h4>
-              <p>
-                Kandidat belum tersedia atau belum diverifikasi untuk lingkup
-                akademik kamu.
-              </p>
+            <div className="fase6-loading-box">
+              <span className="fase6-spinner" />
+              <p>Memuat kandidat sesuai hak pilih...</p>
             </div>
+          ) : !error && categoryGroups.length === 0 ? (
+            <EmptyState
+              eyebrow="Belum ada kandidat"
+              title="Belum ada kandidat sesuai hak pilih"
+              description="Kandidat belum tersedia, belum diverifikasi, atau belum sesuai dengan data fakultas, jurusan, dan prodi kamu."
+              actionLabel="Muat ulang"
+              onAction={loadVotingData}
+            />
           ) : (
             <div className="voting-category-list">
               {categoryGroups.map((category) => {
@@ -251,7 +252,6 @@ function VotingPage() {
                         <span>{category.levelLabel}</span>
                         <h4>{category.label}</h4>
                       </div>
-
                       <p className={alreadyVoted ? "voting-status-done" : "voting-status-open"}>
                         {alreadyVoted ? "Sudah Coblos" : "Belum Coblos"}
                       </p>
@@ -273,33 +273,27 @@ function VotingPage() {
                             <tr key={candidate.id}>
                               <td>
                                 <div className="candidate-name-cell">
-                                  <div className="candidate-mini-avatar">
-                                    {candidate.nama?.charAt(0)?.toUpperCase() || "K"}
-                                  </div>
+                                  <div className="candidate-mini-avatar">{candidate.nama?.charAt(0)?.toUpperCase() || "K"}</div>
                                   <div>
-                                    <strong>{candidate.nama}</strong>
-                                    <span>NIM: {candidate.nim}</span>
+                                    <strong>{candidate.nama || "Nama belum tersedia"}</strong>
+                                    <span>NIM: {candidate.nim || "-"}</span>
                                   </div>
                                 </div>
                               </td>
                               <td>
                                 <div className="user-academic-cell">
-                                  <span>{candidate.prodi}</span>
-                                  <small>{candidate.jurusan}</small>
-                                  <small>{candidate.fakultas}</small>
+                                  <span>{candidate.prodi || "-"}</span>
+                                  <small>{candidate.jurusan || "-"}</small>
+                                  <small>{candidate.fakultas || "-"}</small>
                                 </div>
                               </td>
-                              <td className="candidate-description-cell">
-                                {candidate.visi || "-"}
-                              </td>
-                              <td>
-                                <span className="status-pill status-approved">Terverifikasi</span>
-                              </td>
+                              <td className="candidate-description-cell">{candidate.visi || "Visi belum tersedia."}</td>
+                              <td><span className="status-pill status-approved">Terverifikasi</span></td>
                               <td>
                                 <button
                                   type="button"
                                   className="action-btn action-btn-detail"
-                                  disabled={alreadyVoted || actionLoading}
+                                  disabled={alreadyVoted || actionLoading || user?.is_active === false}
                                   onClick={() => openConfirmModal(candidate, category)}
                                 >
                                   {alreadyVoted ? "Terkunci" : "Pilih"}
