@@ -32,10 +32,6 @@ class RequestLoggingMiddleware(
 
         start_time = time.time()
 
-        response = await call_next(
-            request
-        )
-
         try:
 
             response = await call_next(
@@ -51,6 +47,8 @@ class RequestLoggingMiddleware(
                         correlation_id
                 }
             )
+
+            raise
 
         duration_ms = round(
             (

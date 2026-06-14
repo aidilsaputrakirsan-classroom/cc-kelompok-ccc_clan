@@ -33,7 +33,7 @@ class User(Base):
     angkatan = Column(Integer, nullable=False)
 
     role = Column(String(20), default="user")
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -70,7 +70,7 @@ class Candidate(Base):
     surat_mengikuti_kegiatan = Column(String(255))
     dokumen_swot = Column(String(255))
 
-    status = Column(String(50), default="approved")
+    status = Column(String(50), default="pending")
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -85,4 +85,7 @@ class Vote(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     candidate_id = Column(Integer, ForeignKey("candidates.id"), nullable=False)
 
+    kategori = Column(String(100), nullable=False)
+    category_key = Column(String(255), index=True, nullable=True)
+    level = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

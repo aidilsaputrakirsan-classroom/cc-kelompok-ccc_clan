@@ -145,7 +145,7 @@ class CandidateUpdate(BaseModel):
     prodi: Optional[str] = None
     jurusan: Optional[str] = None
     fakultas: Optional[str] = None
-
+    status: Optional[str] = None
     posisi: Optional[str] = None
     visi: Optional[str] = None
     misi: Optional[str] = None
@@ -168,4 +168,15 @@ class VoteResponse(BaseModel):
 
 class VoteResultResponse(BaseModel):
     candidate_id: int
+    nama: str | None = None
+    candidate_name: str | None = None
+    posisi: str | None = None
+    prodi: str | None = None
+    jurusan: str | None = None
+    fakultas: str | None = None
+    status: str | None = None
+    level: str | None = None
+    category: str | None = None
+    category_name: str | None = None
     total_votes: int
+    votes: int | None = None
