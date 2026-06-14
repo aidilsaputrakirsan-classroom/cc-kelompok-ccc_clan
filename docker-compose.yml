@@ -119,7 +119,8 @@ services:
           memory: 512M
 
   backend:
-    image: bentosaputra/sipilih-backend:v1
+    build:
+      context: ./backend
     container_name: fastapi_backend
     restart: unless-stopped
     depends_on:

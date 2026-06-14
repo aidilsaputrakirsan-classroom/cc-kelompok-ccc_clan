@@ -1,44 +1,70 @@
 # ============================================================
-# Stage: Production Image
+# Stage 1: Builder Stage
 # ============================================================
 
-# 1. Base image
-FROM python:3.12-slim
+FROM python:3.12-slim AS builder
 
-# 2. Install system dependencies + curl
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
     gcc \
-    libpq-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 3. Tambahkan non-root user
-RUN useradd -m appuser
-
-# 4. Set working directory
-WORKDIR /app
-
-# 5. Copy requirements
+# Copy requirements first (cache optimization)
 COPY requirements.txt .
 
-# 6. Install python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Create virtual environment
+RUN python -m venv /opt/venv
 
-# 7. Copy source code
+# Activate venv path
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install Python dependencies
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+
+# ============================================================
+# Stage 2: Production Stage
+# ============================================================
+
+FROM python:3.12-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install only curl for healthcheck
+RUN apt-get update && apt-get install -y curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+
+# Set venv path
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Create non-root user
+RUN useradd -m appuser || true
+
+# Copy application code only
 COPY . .
 
-# 8. Set permission
-RUN chown -R appuser:appuser /app
+# Buat direktori uploads dan atur izin akses
+RUN mkdir -p /app/uploads && chown -R appuser:appuser /app && chmod -R 755 /app/uploads
 
-# 9. Gunakan non-root user
+# Use non-root user
 USER appuser
 
-# 10. Expose port
+# Expose application port
 EXPOSE 8000
 
-# 11. Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+# Healthcheck endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# 12. Run app
+# Run FastAPI app
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
