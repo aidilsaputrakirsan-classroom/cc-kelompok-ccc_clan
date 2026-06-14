@@ -87,7 +87,7 @@ def create_user(db: Session, user_data: UserCreate):
         angkatan=user_data.angkatan,
         hashed_password=hash_password(user_data.password),
         role="user",
-        is_active=False,
+        is_active=True,
     )
 
     db.add(user)
