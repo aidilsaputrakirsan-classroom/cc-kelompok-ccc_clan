@@ -225,7 +225,7 @@ function DashboardPage() {
       <main className="dashboard-page fase5-page">
         <section className="fase5-hero dashboard-hero">
           <div>
-            <span className="dashboard-badge">FASE 5 - Dashboard {roleLabel}</span>
+            <span className="dashboard-badge">Dashboard {roleLabel}</span>
             <h1>Halo, {user?.name || "Pengguna"}</h1>
             <p>
               Pantau status voting, hasil suara per kategori, dan ringkasan sistem SIPILIH dalam satu dashboard.
@@ -466,25 +466,6 @@ function DashboardPage() {
                   </section>
                 </div>
               )}
-            </section>
-
-            <section className="summary-card fase5-quick-links-card">
-              <h3>Akses Cepat</h3>
-              <div className="fase5-quick-links">
-                {isUserDashboard ? (
-                  <>
-                    <Link to="/voting">Voting</Link>
-                    <Link to="/candidates">Kandidat</Link>
-                    <Link to="/vote-results">Hasil Voting</Link>
-                  </>
-                ) : (
-                  <>
-                    <Link to="/admin/candidates">Kelola Kandidat</Link>
-                    <Link to="/manage-users">Manajemen User</Link>
-                    <Link to="/vote-results">Hasil Voting</Link>
-                  </>
-                )}
-              </div>
             </section>
           </>
         )}

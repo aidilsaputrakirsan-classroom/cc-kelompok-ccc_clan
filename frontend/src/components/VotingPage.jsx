@@ -194,7 +194,7 @@ function VotingPage() {
       <main className="candidates-page voting-page fase6-page">
         <section className="candidate-hero">
           <div>
-            <span className="candidate-badge">FASE 6 - Error Handling</span>
+            <span className="candidate-badge">Voting</span>
             <h1>Voting Utama</h1>
             <p>
               Pilih kandidat sesuai hak pilih kamu. Setiap kategori hanya bisa dicoblos satu kali.

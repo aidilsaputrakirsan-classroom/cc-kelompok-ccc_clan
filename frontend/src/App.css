@@ -1057,6 +1057,84 @@ td,
   font-size: 14px;
 }
 
+/* =========================================================
+   9. CANDIDATE STATUS
+========================================================= */
+.candidate-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.candidate-action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.candidate-action-status-select {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #d8e0ef;
+  background: #ffffff;
+  color: #1f2a44;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.candidate-action-status-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.action-btn-approve {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.action-btn-pending {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.action-btn-reject {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.action-btn-approve:hover {
+  background: #bbf7d0;
+}
+
+.action-btn-pending:hover {
+  background: #fde68a;
+}
+
+.action-btn-reject:hover {
+  background: #fecaca;
+}
+
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.candidate-table th:last-child,
+.candidate-table td:last-child {
+  min-width: 330px;
+}
+
+.candidate-action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
 
 /* =========================================================
    9. CANDIDATE FORM

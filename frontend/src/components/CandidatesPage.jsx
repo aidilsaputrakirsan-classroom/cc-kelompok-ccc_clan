@@ -7,8 +7,35 @@ import {
   deleteCandidate,
   getAdminCandidates,
   getPublicCandidates,
+  updateCandidateStatus,
 } from "../services/api";
 import { canManageCandidates } from "../utils/auth";
+
+const STATUS_OPTIONS = [
+  { value: "pending", label: "Pending" },
+  { value: "approved", label: "Approved" },
+  { value: "rejected", label: "Rejected" },
+];
+
+const STATUS_LABELS = {
+  pending: "Pending",
+  approved: "Approved",
+  rejected: "Rejected",
+};
+
+const STATUS_SUCCESS_MESSAGES = {
+  pending: "Status kandidat berhasil diubah menjadi pending.",
+  approved: "Kandidat berhasil diverifikasi.",
+  rejected: "Kandidat berhasil ditolak.",
+};
+
+function getCandidateStatus(candidate) {
+  return candidate.status || "pending";
+}
+
+function getStatusLabel(status) {
+  return STATUS_LABELS[status] || status || "Pending";
+}
 
 function CandidatesPage() {
   const navigate = useNavigate();
@@ -16,6 +43,8 @@ function CandidatesPage() {
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [statusLoadingCandidateId, setStatusLoadingCandidateId] =
+    useState(null);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -63,7 +92,9 @@ function CandidatesPage() {
         ? await getAdminCandidates()
         : await getPublicCandidates();
 
-      setCandidates(data || []);
+      const candidateData = data || [];
+
+      setCandidates(candidateData);
     } catch (err) {
       if (err.message === "UNAUTHORIZED") {
         setError("Sesi berakhir. Silakan login ulang.");
@@ -102,7 +133,8 @@ function CandidatesPage() {
         candidate.prodi?.toLowerCase().includes(keyword) ||
         candidate.jurusan?.toLowerCase().includes(keyword) ||
         candidate.fakultas?.toLowerCase().includes(keyword) ||
-        candidate.visi?.toLowerCase().includes(keyword)
+        candidate.visi?.toLowerCase().includes(keyword) ||
+        candidate.status?.toLowerCase().includes(keyword)
       );
     });
   }, [candidates, searchTerm]);
@@ -150,6 +182,59 @@ function CandidatesPage() {
     }
   };
 
+  const handleChangeStatus = async (candidateId, nextStatus) => {
+    const selectedCandidate = candidates.find(
+      (candidate) => candidate.id === candidateId
+    );
+
+    if (!selectedCandidate) return;
+
+    const currentStatus = getCandidateStatus(selectedCandidate);
+
+    if (currentStatus === nextStatus) return;
+
+    setStatusLoadingCandidateId(candidateId);
+
+    try {
+      setError("");
+
+      const updatedCandidate = await updateCandidateStatus(
+        candidateId,
+        nextStatus
+      );
+
+      setCandidates((prevCandidates) =>
+        prevCandidates.map((candidate) =>
+          candidate.id === candidateId
+            ? {
+                ...candidate,
+                ...(updatedCandidate || {}),
+                status: updatedCandidate?.status || nextStatus,
+              }
+            : candidate
+        )
+      );
+
+      showToast(
+        "success",
+        STATUS_SUCCESS_MESSAGES[nextStatus] ||
+          "Status kandidat berhasil diperbarui."
+      );
+    } catch (err) {
+      if (err.message === "UNAUTHORIZED") {
+        showToast("error", "Sesi berakhir. Silakan login ulang.");
+
+        setTimeout(() => {
+          navigate("/login");
+        }, 900);
+      } else {
+        showToast("error", err.message || "Gagal mengubah status kandidat.");
+      }
+    } finally {
+      setStatusLoadingCandidateId(null);
+    }
+  };
+
   return (
     <>
       <AdminNavbar />
@@ -164,7 +249,7 @@ function CandidatesPage() {
       <ConfirmModal
         show={showDeleteModal}
         title="Konfirmasi Hapus"
-        message="Apakah kamu yakin ingin menghapus kandidat ini? Data yang dihapus tidak dapat dikembalikan."
+        message="Apakah kamu yakin ingin menghapus kandidat ini? Kandidat yang sudah memiliki suara tidak dapat dihapus agar riwayat voting tetap aman."
         confirmText={deleteLoading ? "Menghapus..." : "Hapus"}
         cancelText="Batal"
         onConfirm={handleDeleteCandidate}
@@ -182,7 +267,7 @@ function CandidatesPage() {
 
             <p>
               {canManage
-                ? "Kelola seluruh data kandidat SIPILIH. Admin dapat menambah, mengedit, dan menghapus kandidat."
+                ? "Kelola data kandidat SIPILIH, termasuk menambah, mengedit, memverifikasi, menolak, dan menghapus kandidat."
                 : "Pelajari profil, visi, misi, dan inovasi kandidat sebelum melakukan voting."}
             </p>
           </div>
@@ -218,9 +303,9 @@ function CandidatesPage() {
             <div className="candidate-search-box">
               <input
                 type="text"
-                placeholder="Cari nama, NIM, posisi, prodi..."
+                placeholder="Cari nama, NIM, posisi, prodi, status..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(event) => setSearchTerm(event.target.value)}
               />
             </div>
           </div>
@@ -272,80 +357,101 @@ function CandidatesPage() {
                 </thead>
 
                 <tbody>
-                  {filteredCandidates.map((candidate) => (
-                    <tr key={candidate.id}>
-                      <td>
-                        <div className="candidate-name-cell">
-                          <div className="candidate-mini-avatar">
-                            {candidate.nama
-                              ? candidate.nama.charAt(0).toUpperCase()
-                              : "K"}
+                  {filteredCandidates.map((candidate) => {
+                    const currentStatus = getCandidateStatus(candidate);
+                    const isStatusLoading =
+                      statusLoadingCandidateId === candidate.id;
+
+                    return (
+                      <tr key={candidate.id}>
+                        <td>
+                          <div className="candidate-name-cell">
+                            <div className="candidate-mini-avatar">
+                              {candidate.nama
+                                ? candidate.nama.charAt(0).toUpperCase()
+                                : "K"}
+                            </div>
+
+                            <div>
+                              <strong>{candidate.nama}</strong>
+                              <span>{candidate.email}</span>
+                            </div>
                           </div>
+                        </td>
 
-                          <div>
-                            <strong>{candidate.nama}</strong>
-                            <span>{candidate.email}</span>
-                          </div>
-                        </div>
-                      </td>
+                        <td>{candidate.posisi || "-"}</td>
+                        <td>{candidate.prodi || "-"}</td>
 
-                      <td>{candidate.posisi || "-"}</td>
-                      <td>{candidate.prodi || "-"}</td>
+                        <td className="candidate-description-cell">
+                          {candidate.visi || "-"}
+                        </td>
 
-                      <td className="candidate-description-cell">
-                        {candidate.visi || "-"}
-                      </td>
-
-                      <td>
-                        <span
-                          className={`status-pill status-${
-                            candidate.status || "approved"
-                          }`}
-                        >
-                          {candidate.status || "approved"}
-                        </span>
-                      </td>
-
-                      <td>
-                        <div className="candidate-action-group">
-                          <Link
-                            to={`/candidates/${candidate.id}`}
-                            className="action-btn action-btn-detail"
+                        <td>
+                          <span
+                            className={`status-pill status-${currentStatus}`}
                           >
-                            Detail
-                          </Link>
+                            {getStatusLabel(currentStatus)}
+                          </span>
+                        </td>
 
-                          {!canManage && (
-                            <Link
-                              to="/voting"
-                              className="action-btn action-btn-edit"
-                            >
-                              Mulai Voting
-                            </Link>
-                          )}
-
-                          {canManage && (
-                            <>
+                        <td>
+                          <td>
+                            <div className="candidate-action-group">
                               <Link
-                                to={`/candidates/${candidate.id}/edit`}
-                                className="action-btn action-btn-edit"
+                                to={`/candidates/${candidate.id}`}
+                                className="action-btn action-btn-detail"
                               >
-                                Edit
+                                Detail
                               </Link>
 
-                              <button
-                                type="button"
-                                className="action-btn action-btn-delete"
-                                onClick={() => openDeleteModal(candidate.id)}
-                              >
-                                Hapus
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                              {canManage && (
+                                <>
+                                  <Link
+                                    to={`/candidates/${candidate.id}/edit`}
+                                    className="action-btn action-btn-edit"
+                                  >
+                                    Edit
+                                  </Link>
+
+
+                                  <button
+                                    type="button"
+                                    className="action-btn action-btn-delete"
+                                    onClick={() =>
+                                      openDeleteModal(candidate.id)
+                                    }
+                                  >
+                                    Hapus
+                                  </button>
+
+                                  <select
+                                    className="candidate-action-status-select"
+                                    value={currentStatus}
+                                    disabled={isStatusLoading}
+                                    onChange={(event) =>
+                                      handleChangeStatus(
+                                        candidate.id,
+                                        event.target.value
+                                      )
+                                    }
+                                  >
+                                    {STATUS_OPTIONS.map((option) => (
+                                      <option
+                                        key={option.value}
+                                        value={option.value}
+                                      >
+                                        {option.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

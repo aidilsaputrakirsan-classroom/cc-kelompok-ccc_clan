@@ -209,7 +209,7 @@ function ManageUsersPage() {
       <main className="manage-users-page">
         <section className="candidate-hero">
           <div>
-            <span className="candidate-badge">FASE 2</span>
+            <span className="candidate-badge">Kelola Pemilih</span>
             <h1>{pageTitle}</h1>
             <p>{pageDescription}</p>
           </div>

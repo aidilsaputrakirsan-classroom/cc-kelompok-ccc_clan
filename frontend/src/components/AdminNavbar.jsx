@@ -19,9 +19,11 @@ function AdminNavbar() {
   const canManage = canManageCandidates();
 
   const isDashboardRoute = location.pathname === "/dashboard";
-  const isCandidatesRoute =
-    location.pathname.startsWith("/candidates") ||
-    location.pathname.startsWith("/admin/candidates");
+  const isCandidatesRoute = location.pathname.startsWith("/candidates");
+  const isAdminCandidatesRoute =
+    location.pathname.startsWith("/admin/candidates") ||
+    location.pathname === "/candidates/create" ||
+    location.pathname.endsWith("/edit");
   const isVotingRoute = location.pathname === "/voting";
   const isVoteResultsRoute = location.pathname === "/vote-results";
   const isManageUsersRoute = location.pathname === "/manage-users";
@@ -68,12 +70,21 @@ function AdminNavbar() {
             Dashboard
           </Link>
 
-          <Link
-            to="/candidates"
-            className={isCandidatesRoute ? "nav-active" : ""}
-          >
-            Kandidat
-          </Link>
+          {canManage ? (
+            <Link
+              to="/admin/candidates"
+              className={isAdminCandidatesRoute ? "nav-active" : ""}
+            >
+              Kelola Kandidat
+            </Link>
+          ) : (
+            <Link
+              to="/candidates"
+              className={isCandidatesRoute ? "nav-active" : ""}
+            >
+              Kandidat
+            </Link>
+          )}
 
           {!canManage && (
             <Link to="/voting" className={isVotingRoute ? "nav-active" : ""}>
@@ -90,23 +101,10 @@ function AdminNavbar() {
 
           {canManage && (
             <Link
-              to="/admin/candidates"
-              className={
-                location.pathname.startsWith("/admin/candidates")
-                  ? "nav-active"
-                  : ""
-              }
-            >
-              Kelola Kandidat
-            </Link>
-          )}
-
-          {canManage && (
-            <Link
               to="/manage-users"
               className={isManageUsersRoute ? "nav-active" : ""}
             >
-              Manajemen User
+              Kelola Pemilih
             </Link>
           )}
         </div>
