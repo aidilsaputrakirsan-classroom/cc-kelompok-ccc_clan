@@ -24,6 +24,7 @@ function LoginPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [warning, setWarning] = useState(location.state?.message || "");
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -38,6 +39,7 @@ function LoginPage() {
       [name]: "",
     }));
     setError("");
+    setWarning("");
   };
 
   const handleLogin = async (event) => {
@@ -103,6 +105,7 @@ function LoginPage() {
             {fieldErrors.password && <small className="field-error-text">{fieldErrors.password}</small>}
           </div>
 
+          <InlineAlert type="warning" message={warning} />
           <InlineAlert type="error" message={error} />
 
           <button type="submit" className="btn btn-primary btn-full" disabled={loading}>

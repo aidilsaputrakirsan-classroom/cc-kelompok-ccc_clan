@@ -162,8 +162,17 @@ export async function login(email, password) {
     body: JSON.stringify({ email, password }),
   });
 
+  if (data?.user?.is_active === false) {
+    clearToken();
+    throw new Error(
+      "Akun belum diverifikasi oleh admin. Silakan tunggu sampai akun kamu diverifikasi."
+    );
+  }
+
   if (!data?.access_token) {
-    throw new Error("Login berhasil diproses, tetapi server tidak mengirim token. Hubungi tim backend.");
+    throw new Error(
+      "Login berhasil diproses, tetapi server tidak mengirim token. Hubungi tim backend."
+    );
   }
 
   setToken(data.access_token);
@@ -247,6 +256,10 @@ export async function updateCandidate(id, candidateData) {
     },
     body: JSON.stringify(candidateData),
   });
+}
+
+export async function updateCandidateStatus(id, status) {
+  return updateCandidate(id, { status });
 }
 
 export async function deleteCandidate(id) {

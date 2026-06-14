@@ -152,10 +152,15 @@ function RegisterPage() {
         angkatan: Number(normalizedForm.angkatan),
       });
 
-      setSuccess("Register berhasil. Silakan login menggunakan akun yang baru dibuat.");
+      setSuccess("Register berhasil. Akun kamu menunggu verifikasi admin sebelum bisa login.");
 
       setTimeout(() => {
-        navigate("/login");
+        navigate("/login", {
+          state: {
+            message:
+              "Registrasi berhasil. Akun kamu belum bisa login sampai diverifikasi oleh admin.",
+          },
+        });
       }, 1200);
     } catch (err) {
       setError(getFriendlyErrorMessage(err, "Register gagal. Periksa kembali data yang kamu isi."));

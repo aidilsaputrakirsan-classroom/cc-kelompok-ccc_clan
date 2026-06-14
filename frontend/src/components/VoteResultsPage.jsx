@@ -189,7 +189,7 @@ function VoteResultsPage() {
       <main className="candidates-page fase5-page">
         <section className="fase5-hero candidate-hero">
           <div>
-            <span className="candidate-badge">FASE 5 - Hasil Voting</span>
+            <span className="candidate-badge">Hasil Voting</span>
             <h1>Rekapitulasi Hasil Voting</h1>
             <p>
               Pantau hasil voting per kategori KM, fakultas, jurusan, dan prodi dengan visualisasi suara yang mudah dibaca.
