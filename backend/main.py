@@ -17,6 +17,7 @@ from schemas import (
 )
 from auth import create_access_token, get_current_user
 import crud
+from academic_data import ACADEMIC_STRUCTURE
 
 load_dotenv()
 
@@ -84,6 +85,12 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 
     if not user:
         raise HTTPException(status_code=401, detail="Email / password salah")
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=403,
+            detail="Akun belum diverifikasi oleh admin. Silakan tunggu sampai akun kamu diverifikasi."
+            )
 
     token = create_access_token(
         data={
@@ -233,6 +240,12 @@ def delete_item(
 def get_candidates(db: Session = Depends(get_db)):
     return crud.get_candidates(db)
 
+@app.get("/candidates/eligible", response_model=list[CandidateResponse])
+def get_eligible_candidates(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return crud.get_eligible_candidates(db, user)
 
 # ================= CANDIDATE ADMIN =================
 @app.post("/admin/candidates", response_model=CandidateResponse)
@@ -275,6 +288,13 @@ def list_candidates(
     user: User = Depends(require_role(["admin", "superadmin"]))
 ):
     return crud.get_candidates(db)
+
+
+# ================= ACADEMIC DATA =================
+@app.get("/academic")
+def get_academic():
+    return ACADEMIC_STRUCTURE
+
 
 
 # ================= VOTING =================
