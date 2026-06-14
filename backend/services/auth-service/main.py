@@ -160,10 +160,6 @@ def verify_token(
 def get_metrics():
 
     return {
-        "service": "auth-service",
-
-        "service":
-            "auth-service",
-
-        **metrics.get_metrics()
+    "service": "auth-service",
+    **metrics.get_metrics()
     }
