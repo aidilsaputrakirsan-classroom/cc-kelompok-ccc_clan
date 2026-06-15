@@ -8,7 +8,7 @@ function LandingPage() {
         <div className="logo-wrap">
           <h2 className="logo">SIPILIH</h2>
           <span className="logo-subtitle">
-            Sistem Informasi Pemilihan Digital
+            Sistem Informasi Pemilihan Digital ITK
           </span>
         </div>
 
