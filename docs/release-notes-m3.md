@@ -1,48 +1,54 @@
-# Release Notes — Milestone 3
+# Release Notes — Milestone 3 (Final)
 
-## Version 3.0.0
+## Version: 3.0.0
 
-### New Features
-
-#### Hybrid Architecture Implementation
-
-Pada Milestone 3, SIPILIH mulai mengadopsi pendekatan service decomposition sebagai langkah menuju arsitektur microservices.
-
-Komponen yang ditambahkan:
-
-* Auth Service
-* Candidate Service
-* API Gateway
-* Dedicated Service Databases
-
-Selain itu, backend utama tetap dipertahankan untuk menangani fitur yang belum sepenuhnya dipisahkan ke service tersendiri.
+**Release Date:** 15 Juni 2026
+**Tag:** v3.0.0
 
 ---
 
-#### Reliability Engineering
+## 🆕 Fitur Baru
 
-Peningkatan reliability sistem meliputi:
+### Hybrid Architecture
 
-* Retry Mechanism
+Pada Milestone 3, SIPILIH mulai mengadopsi pendekatan service decomposition sebagai transisi dari arsitektur monolith menuju microservices.
+
+Perubahan yang diterapkan:
+
+* Auth Service untuk autentikasi dan JWT
+* Candidate Service untuk manajemen kandidat
+* API Gateway (Nginx) sebagai entry point
+* Database terpisah untuk Auth Service dan Candidate Service
+* Inter-service communication melalui REST API
+
+Backend utama (Monolith) tetap dipertahankan untuk fitur yang belum sepenuhnya dipisahkan.
+
+---
+
+### Reliability Engineering
+
+Peningkatan reliability sistem:
+
+* Retry Mechanism dengan exponential backoff
 * Circuit Breaker Pattern
+* Graceful Recovery
 * Service Health Checks
-* Graceful Recovery Process
 
 ---
 
-#### Monitoring & Observability
+### Monitoring & Observability
 
 Fitur monitoring yang ditambahkan:
 
 * Structured Logging
 * Request Logging Middleware
-* Metrics Collection
-* Health Check Endpoints
+* Metrics Endpoint
+* Health Check Endpoint
 * Service Monitoring Support
 
 ---
 
-#### Security Improvements
+### Security Improvements
 
 Peningkatan keamanan sistem:
 
@@ -54,55 +60,52 @@ Peningkatan keamanan sistem:
 
 ---
 
-## Technology Stack
+## 📊 Statistik Proyek
 
-### Backend
-
-* FastAPI
-* SQLAlchemy
-* PostgreSQL
-
-### Frontend
-
-* React
-* Vite
-
-### DevOps & Infrastructure
-
-* Docker
-* Docker Compose
-* Nginx Gateway
-* GitHub Actions
-* Railway
+| Metric              | Value               |
+| ------------------- | ------------------- |
+| Architecture Style  | Hybrid Architecture |
+| Total Services      | 5                   |
+| Databases           | 3                   |
+| API Gateway         | Nginx               |
+| CI/CD Platform      | GitHub Actions      |
+| Deployment Platform | Railway             |
 
 ---
 
-## Production URL
+## 🐛 Known Issues
+
+* Sistem masih berada pada tahap transisi menuju pemisahan service yang lebih lengkap.
+* Beberapa fitur masih dijalankan melalui Main Backend (Monolith).
+
+---
+
+## 🌐 Production URL
 
 Frontend
 
-```text
 https://frontendcc-kelompok-cccclan-production.up.railway.app
-```
 
 Backend
 
-```text
 https://backendcc-kelompok-cccclan-production.up.railway.app
-```
 
 ---
 
-## Known Issues
+## 👥 Team Contributions
 
-* Arsitektur sistem masih berada pada tahap transisi menuju pemisahan service yang lebih lengkap.
-* Beberapa fitur masih dijalankan melalui backend utama untuk menjaga kompatibilitas dengan implementasi sebelumnya.
+| Role                    | Area                           |
+| ----------------------- | ------------------------------ |
+| Lead Backend            | Backend Development & Services |
+| Lead Frontend           | Frontend Development & UI      |
+| Lead DevOps             | Docker, CI/CD, Deployment      |
+| Lead QA & Documentation | Testing & Documentation        |
 
 ---
 
-## Next Milestone
+## 🚀 Next Phase
 
 * Final UAS Presentation
-* Repository Finalization
+* Documentation Refinement
 * Production Optimization
-* Documentation Review
+* Future Service Decomposition
