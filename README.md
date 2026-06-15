@@ -9,23 +9,25 @@ Dalam implementasinya, SIPILIH membagi hak akses pengguna ke dalam beberapa pera
 
 ## 👥 Tim
 
-| Nama | NIM | Peran |
-|------|-----|-------|
-| Dzakwan Fatih Fadhilah  | 10231034 | Lead Backend |
-| Risky Nur Fatimah Bahar  | 10231084 | Lead Frontend |
-| Muhammad Dani  | 10231062 | Lead DevOps |
-| Ade Ayu Kholifah Putri | 10231004 | Lead QA & Docs |
+| Nama | NIM | Peran | Kontribusi Utama |
+|------|-----|-------| -----------------|
+| Dzakwan Fatih Fadhilah  | 10231034 | Lead Backend | Auth Service, Item Service, API design |
+| Risky Nur Fatimah Bahar  | 10231084 | Lead Frontend | React UI, Status Page, UX |
+| Muhammad Dani  | 10231062 | Lead DevOps | Docker, Nginx Gateway, Railway deploy |
+| Ade Ayu Kholifah Putri | 10231004 | Lead QA & Docs | Testing, CI pipeline, documentation |
 
 ## 🛠️ Tech Stack
 
-| Teknologi | Fungsi |
-|-----------|--------|
-| FastAPI   | Backend REST API |
-| React     | Frontend SPA |
-| PostgreSQL | Database |
-| Docker    | Containerization |
-| GitHub Actions | CI/CD |
-| Railway/Render | Cloud Deployment |
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| Frontend | React + Vite | Single Page Application |
+| Backend | FastAPI (Python) | REST API microservices |
+| Database | PostgreSQL 16 | Relational database (per service) |
+| Gateway | Nginx | Reverse proxy + rate limiting |
+| Container | Docker + Docker Compose | Containerization |
+| CI/CD | GitHub Actions | Automated test + deploy |
+| Cloud | Railway | PaaS deployment |
+| Monitoring | Custom metrics + dashboard | Observability |
 
 ## 🏗️ Architecture
 
@@ -71,6 +73,7 @@ Meskipun demikian, aplikasi masih mempertahankan Main Backend (Monolith) untuk b
 ### Prasyarat
 - Python 3.10+
 - Node.js 18+
+- Docker & Docker Compose
 - Git
 
 ### Backend
@@ -82,6 +85,24 @@ uvicorn main:app --reload --port 8000
 
 ### Frontend
 ```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Run Without Docker
+```bash
+# Backend (Auth Service)
+cd services/auth-service
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8001
+
+# Backend (Item Service)  
+cd services/item-service
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8002
+
+# Frontend
 cd frontend
 npm install
 npm run dev
@@ -144,6 +165,12 @@ Jika terjadi error koneksi database, periksa konfigurasi `DATABASE_URL` pada fil
 ```
   172.17.0.1  
 ```
+
+- [Architecture Guide](docs/architecture.md)
+- [Deployment Guide](docs/deployment-guide.md)
+- [Operations Guide](docs/operations-guide.md)
+- [API Contract](docs/api-contract.md)
+- [Release Notes](docs/release-notes-m3.md)
 
 ## API Testing
 
