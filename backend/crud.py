@@ -334,7 +334,11 @@ def get_eligible_candidates(db: Session, user: User):
 
 # ================= VOTING =================
 def vote_candidate(db: Session, user_id: int, candidate_id: int):
-    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    candidate = (
+        db.query(Candidate)
+        .filter(Candidate.id == candidate_id)
+        .first()
+    )
 
     if not candidate:
         raise HTTPException(
@@ -349,6 +353,10 @@ def vote_candidate(db: Session, user_id: int, candidate_id: int):
         )
 
     category_key = get_candidate_category_key(candidate)
+
+    level = _get_vote_result_level(
+        candidate.posisi
+    )
 
     existing_vote = (
         db.query(Vote)
@@ -370,6 +378,7 @@ def vote_candidate(db: Session, user_id: int, candidate_id: int):
         candidate_id=candidate_id,
         kategori=category_key,
         category_key=category_key,
+        level=level,
     )
 
     db.add(vote)
@@ -382,6 +391,7 @@ def vote_candidate(db: Session, user_id: int, candidate_id: int):
         "candidate_id": candidate_id,
         "kategori": category_key,
         "category_key": category_key,
+        "level": level,
     }
 
 

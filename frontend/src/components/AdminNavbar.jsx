@@ -3,10 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logout } from "../services/api";
 import { useTheme } from "../context/UseTheme";
 import ConfirmModal from "./ConfirmModal";
-import {
-  canManageCandidates,
-  getUserDisplayRole,
-} from "../utils/auth";
+import { canManageCandidates, getUserDisplayRole } from "../utils/auth";
 
 function AdminNavbar() {
   const navigate = useNavigate();
@@ -27,6 +24,7 @@ function AdminNavbar() {
   const isVotingRoute = location.pathname === "/voting";
   const isVoteResultsRoute = location.pathname === "/vote-results";
   const isManageUsersRoute = location.pathname === "/manage-users";
+  const isStatusRoute = location.pathname === "/status";
 
   const openLogoutModal = () => {
     setShowLogoutModal(true);
@@ -105,6 +103,12 @@ function AdminNavbar() {
               className={isManageUsersRoute ? "nav-active" : ""}
             >
               Kelola Pemilih
+            </Link>
+          )}
+
+          {canManage && (
+            <Link to="/status" className={isStatusRoute ? "nav-active" : ""}>
+              Status Sistem
             </Link>
           )}
         </div>

@@ -16,6 +16,7 @@ import NotFoundPage from "./components/NotFoundPage";
 import ComingSoonPage from "./components/ComingSoonPage";
 import ManageUsersPage from "./components/ManageUsersPage";
 import { ThemeProvider } from "./context/ThemeContext";
+import StatusPage from "./components/StatusPage.jsx";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           {/* Public routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/status" element={<StatusPage />} />
 
           {/* Guest-only routes */}
           <Route
